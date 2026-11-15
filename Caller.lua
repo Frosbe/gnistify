@@ -14,6 +14,7 @@
 -- ("LEDER;Navn", empty name = no caller), so everyone with Gnistify follows the
 -- same caller (setting callerFollow). Older versions ignore LEDER; messages.
 --
+-- Clicking the window does the same as the key (it IS the secure button).
 -- The small "Leder" window opens by itself in battlegrounds, arenas and
 -- dungeons; elsewhere via /gnist leder or the button in /gnist. It shows the caller, the caller's target and whether
 -- you have the same target. A short ping plays when the caller switches to a
@@ -70,11 +71,22 @@ local function Share(name)
 end
 
 -- The secure button ------------------------------------------------------------
+-- The same button is the clickable body of the Leder window: the window is
+-- anchored TO the button (never the other way round, because anchoring a
+-- secure frame to an insecure one would make the window protected, and then
+-- resizing it in combat would be blocked). The button can only be moved,
+-- resized, shown or hidden out of combat; SyncButton catches up afterwards.
+-- Left click (and the key binding / /click) assists; right-drag moves.
 local button = CreateFrame("Button", BUTTON, UIParent, "SecureActionButtonTemplate")
 button:Hide()
 -- Down AND up: a key binding or /click may send either one depending on the
 -- "cast on key down" setting. Assisting twice does no harm.
 button:RegisterForClicks("AnyUp", "AnyDown")
+button:SetSize(200, 58)
+button:SetFrameStrata("MEDIUM")
+button:SetMovable(true)
+button:SetClampedToScreen(true)
+button:RegisterForDrag("RightButton")
 
 local callerUnit        -- unit token the button points at (nil = nobody)
 local pending = false   -- the button needs updating once combat ends
@@ -89,7 +101,7 @@ local function ApplyButton()
     end
     pending = false
     callerUnit = unit
-    button:SetAttribute("type", unit and "assist" or nil)
+    button:SetAttribute("type1", unit and "assist" or nil)   -- left button only
     button:SetAttribute("unit", unit)
 end
 
@@ -111,16 +123,45 @@ end
 local win = CreateFrame("Frame", "GnistifyCallerFrame", UIParent, "BackdropTemplate")
 win:SetSize(200, 58)
 win:SetFrameStrata("MEDIUM")
-win:SetMovable(true)
-win:EnableMouse(true)
-win:RegisterForDrag("LeftButton")
-win:SetClampedToScreen(true)
-win:SetScript("OnDragStart", win.StartMoving)
-win:SetScript("OnDragStop", function(self)
+win:SetFrameLevel(button:GetFrameLevel() + 2)   -- Vælg and X sit above the button
+win:EnableMouse(false)                          -- clicks fall through to the button
+win:SetPoint("TOPLEFT", button, "TOPLEFT")
+
+local hover = win:CreateTexture(nil, "OVERLAY")
+hover:SetPoint("TOPLEFT", 3, -3)
+hover:SetPoint("BOTTOMRIGHT", -3, 3)
+hover:SetColorTexture(1, 0.6, 0, 0.12)
+hover:Hide()
+
+button:SetScript("OnDragStart", function(self)
+    if not InCombat() then self:StartMoving() end
+end)
+button:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     local point, _, rel, x, y = self:GetPoint()
     GnistifyDB.callerPos = { point, rel, x, y }
 end)
+button:SetScript("OnEnter", function(self)
+    hover:Show()
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+    GameTooltip:AddLine("Gnistify leder")
+    GameTooltip:AddLine("Klik: tag lederens mål", 1, 1, 1)
+    GameTooltip:AddLine("Højreklik og træk: flyt vinduet", 1, 1, 1)
+    GameTooltip:Show()
+end)
+button:SetScript("OnLeave", function()
+    hover:Hide()
+    GameTooltip:Hide()
+end)
+
+-- Size and show/hide the click area like the window, but only out of combat.
+local buttonDirty = false
+local function SyncButton()
+    if InCombat() then buttonDirty = true return end
+    buttonDirty = false
+    button:SetSize(win:GetWidth(), win:GetHeight())
+    if win:IsShown() then button:Show() else button:Hide() end
+end
 if win.SetBackdrop then
     win:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -135,16 +176,69 @@ win:Hide()
 
 local line1 = win:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 line1:SetPoint("TOPLEFT", 8, -8)
-line1:SetPoint("RIGHT", -70, 0)
 line1:SetJustifyH("LEFT")
 local line2 = win:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 line2:SetPoint("TOPLEFT", line1, "BOTTOMLEFT", 0, -4)
-line2:SetPoint("RIGHT", -8, 0)
 line2:SetJustifyH("LEFT")
 local line3 = win:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 line3:SetPoint("TOPLEFT", line2, "BOTTOMLEFT", 0, -3)
-line3:SetPoint("RIGHT", -8, 0)
 line3:SetJustifyH("LEFT")
+-- No right anchor and no wrapping: the window grows to fit the longest line
+-- (Forever names with surnames are long), see FitWindow.
+for _, fs in ipairs({ line1, line2, line3 }) do
+    if fs.SetWordWrap then fs:SetWordWrap(false) end
+end
+local MIN_WIDTH, BUTTONS_WIDTH = 200, 70   -- BUTTONS_WIDTH: room for Vælg and X
+local HEIGHT, BAR_HEIGHT = 58, 8
+
+-- Health bar of the caller's target. On Forever health can be a secret value,
+-- which addon code can't read but a StatusBar can display, so the raw values
+-- go straight into the bar (in a pcall, just in case). The game sends no
+-- UNIT_HEALTH for "raidNtarget", so the bar is refreshed 10 times a second
+-- while it's shown.
+local bar = CreateFrame("StatusBar", nil, win)
+bar:SetPoint("TOPLEFT", line2, "BOTTOMLEFT", 0, -3)
+bar:SetPoint("RIGHT", win, "RIGHT", -8, 0)
+bar:SetHeight(BAR_HEIGHT)
+bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+bar:SetMinMaxValues(0, 1)
+local barBg = bar:CreateTexture(nil, "BACKGROUND")
+barBg:SetAllPoints()
+barBg:SetColorTexture(0, 0, 0, 0.6)
+bar:Hide()
+
+local barUnit   -- unit the bar follows, nil = hidden
+
+local function RefreshBar()
+    if not barUnit then return end
+    pcall(bar.SetMinMaxValues, bar, 0, UnitHealthMax(barUnit))
+    pcall(bar.SetValue, bar, UnitHealth(barUnit))
+end
+
+local function ShowBar(unit, enemy)
+    barUnit = unit
+    line3:ClearAllPoints()
+    if unit then
+        if enemy then bar:SetStatusBarColor(0.85, 0.15, 0.15)
+        else bar:SetStatusBarColor(0.1, 0.8, 0.1) end
+        bar:Show()
+        line3:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, -3)
+        win:SetHeight(HEIGHT + BAR_HEIGHT + 3)
+        RefreshBar()
+    else
+        bar:Hide()
+        line3:SetPoint("TOPLEFT", line2, "BOTTOMLEFT", 0, -3)
+        win:SetHeight(HEIGHT)
+    end
+end
+
+local sinceBar = 0
+win:SetScript("OnUpdate", function(_, elapsed)
+    sinceBar = sinceBar + elapsed
+    if sinceBar < 0.1 then return end
+    sinceBar = 0
+    RefreshBar()
+end)
 
 local pick = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
 pick:SetSize(42, 18)
@@ -245,7 +339,18 @@ close:SetScript("OnClick", function()
     win:Hide()
 end)
 
-UpdateWindow = function()
+local function TextWidth(fs)
+    return (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0
+end
+
+local function FitWindow()
+    win:SetWidth(math.ceil(math.max(MIN_WIDTH,
+        8 + TextWidth(line1) + BUTTONS_WIDTH,
+        16 + TextWidth(line2),
+        16 + TextWidth(line3))))
+end
+
+local function FillWindow()
     local name = GnistifyDB.callerName
     local inGroup = #GroupUnits() > 0
     local auto = GnistifyDB.callerFrame and AutoZone() and not dismissed
@@ -270,8 +375,9 @@ UpdateWindow = function()
     end
     local tunit = unit .. "target"
     local tname = Readable(UnitExists(tunit)) and FullName(tunit)
+    local enemy
     if tname then
-        local enemy = Readable(UnitCanAttack("player", tunit))
+        enemy = Readable(UnitCanAttack("player", tunit))
         line2:SetText("Mål: " .. (enemy and "|cffff4040" or "|cffffffff") .. tname .. "|r")
         if unit == "player" or name == Me() then
             line3:SetText("|cff00ff00Du er leder - de andre følger dit mål|r")
@@ -285,15 +391,30 @@ UpdateWindow = function()
         line3:SetText("")
     end
     if pending then line3:SetText("|cffff9900Opdateres efter kamp|r") end
+    if tname then return tunit, enemy end
 end
 
+UpdateWindow = function()
+    local barFor, enemy = FillWindow()
+    if win:IsShown() then
+        ShowBar(barFor, enemy)
+        FitWindow()
+    else
+        ShowBar(nil)
+    end
+    SyncButton()
+end
+
+local positioned = false
 local function RestorePosition()
-    win:ClearAllPoints()
+    if InCombat() then return end   -- tried again when combat ends
+    positioned = true
+    button:ClearAllPoints()
     local p = GnistifyDB.callerPos
     if p and p[1] then
-        win:SetPoint(p[1], UIParent, p[2] or p[1], p[3] or 0, p[4] or 0)
+        button:SetPoint(p[1], UIParent, p[2] or p[1], p[3] or 0, p[4] or 0)
     else
-        win:SetPoint("TOP", UIParent, "TOP", 0, -140)
+        button:SetPoint("TOP", UIParent, "TOP", 0, -140)
     end
 end
 
@@ -406,6 +527,7 @@ ev:SetScript("OnEvent", function(_, event, ...)
         end
 
     elseif event == "PLAYER_REGEN_ENABLED" then
+        if not positioned then RestorePosition() end
         if pending then ApplyButton() end
         UpdateWindow()
 

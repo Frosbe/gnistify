@@ -19,7 +19,8 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   leder-vindue*). Du kan også bruge `/gnist leder`, mens du har personen i target. Valget deles automatisk med alle
   i gruppen, der har addonen. Sæt tasten under *Indstillinger → Keybindings →
   Gnistify → "Mål lederens mål"*, eller tryk *Lav makro* i `/gnist` og træk makroen op på en
-  action bar. Vinduet viser lederens mål og siger til, hvis du ikke har det samme, og
+  action bar. Du kan også bare klikke på Leder-vinduet. Flyt vinduet ved at
+  højreklikke og trække. Vinduet viser lederens mål og siger til, hvis du ikke har det samme, og
   der lyder et lille ping, når lederen skifter til en ny fjende. Lederen kan kun
   skiftes uden for kamp (et valg i kamp virker, så snart kampen er slut).
 - **:gnist:** skriv `:gnist:` i chatten for at vise en lille gnist. Kun dem med addonen

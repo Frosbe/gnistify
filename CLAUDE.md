@@ -154,6 +154,19 @@ key to target the caller's target.
   (`IsInInstance` type `pvp`, `arena`, `party`; setting `callerFrame`). Anywhere else
   only by hand: `/gnist leder` or the "Åbn leder-vindue" button in `/gnist` (which also
   has a "Lav makro" button). Its X hides it until the next loading screen.
+  It grows in width to fit the longest line (no word wrap). Under the target's name is
+  a health bar (red for enemies). Health can be secret on Forever, so `UnitHealth` and
+  `UnitHealthMax` go straight into the `StatusBar` (in `pcall`) without `Readable`. The
+  game sends no `UNIT_HEALTH` for `raidNtarget`, so the bar refreshes every 0.1 sec while
+  the window is shown.
+- **Clickable window:** `GnistAssistButton` is also the window's click area. The window
+  (`GnistifyCallerFrame`, insecure) is anchored *to* the button, never the reverse:
+  anchoring a secure frame to an insecure one makes the insecure one protected, and its
+  in-combat resizing would be blocked. `SyncButton` copies the window's size and
+  visibility to the button out of combat only (catching up on `PLAYER_REGEN_ENABLED`).
+  The window has `EnableMouse(false)` so clicks reach the button; Vælg and X sit on a
+  higher frame level. Only `type1` is set, so left click assists and right-drag moves
+  (the position is saved for the button in `GnistifyDB.callerPos`).
   Shows the caller, the caller's target (`UNIT_TARGET`) and whether you have the same
   target. Plays `SOUNDKIT.MAP_PING` when the caller switches to a new enemy you don't
   have targeted (`callerSound`, at most every 1.5 sec).
