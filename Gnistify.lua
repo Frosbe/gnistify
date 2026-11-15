@@ -197,6 +197,9 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.killBanner == nil then db.killBanner = true end
         if db.dings == nil then db.dings = true end
         if db.emojis == nil then db.emojis = true end
+        if db.callerFrame == nil then db.callerFrame = true end
+        if db.callerFollow == nil then db.callerFollow = true end
+        if db.callerSound == nil then db.callerSound = true end
         if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
             C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
         elseif RegisterAddonMessagePrefix then
@@ -271,7 +274,8 @@ end)
 SLASH_GNISTIFY1 = "/gnist"
 SLASH_GNISTIFY2 = "/gnistify"
 SlashCmdList.GNISTIFY = function(input)
-    local cmd = (input or ""):lower():match("^%s*(%S*)")
+    local cmd, rest = (input or ""):match("^%s*(%S*)%s*(.-)%s*$")
+    cmd = (cmd or ""):lower()
     local db = GnistifyDB
     local function onoff(v) return v and "|cff00ff00til|r" or "|cffff0000fra|r" end
 
@@ -287,6 +291,10 @@ SlashCmdList.GNISTIFY = function(input)
     elseif cmd == "drab" or cmd == "kills" then
         db.kills = not db.kills
         Print("Vis guildens drab i chatten: " .. onoff(db.kills))
+    elseif cmd == "leder" or cmd == "caller" then
+        ns.CallerCommand(rest)
+    elseif cmd == "makro" or cmd == "macro" then
+        ns.MakeCallerMacro()
     elseif cmd == "emojis" or cmd == "emoji" then
         Gnistify_ListEmojis()
     elseif cmd == "" then
@@ -299,5 +307,8 @@ SlashCmdList.GNISTIFY = function(input)
         Print("  /gnist banner - stor tekst på skærmen " .. onoff(db.banner))
         Print("  /gnist drab   - vis guildens drab i chatten " .. onoff(db.kills))
         Print("  /gnist emojis - vis alle :emojis: du kan skrive i chatten")
+        Print("  /gnist leder  - vælg dit mål som leder (eller åbn leder-vinduet)")
+        Print("  /gnist leder <navn> / mig / ingen - vælg leder")
+        Print("  /gnist makro  - lav en makro der tager lederens mål")
     end
 end

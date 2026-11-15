@@ -13,6 +13,15 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   nr. 3)"* i chatten, og der spilles en lyd. Teksten skifter fra gang til gang. "Med"
   er gruppemedlemmer tæt på, og tallet er, hvor mange drab personen har fået i dag.
   Selvom I er flere i gruppen, kommer beskeden kun én gang.
+- **Leder i BG:** vælg én i gruppen som leder (shot caller), og tryk én tast for at
+  tage lederens mål. Vælg lederen i det lille **Leder**-vindue (knappen *Vælg*). Vinduet
+  dukker selv op i BG og dungeons, og ellers åbner du det fra `/gnist` (*Åbn
+  leder-vindue*). Du kan også bruge `/gnist leder`, mens du har personen i target. Valget deles automatisk med alle
+  i gruppen, der har addonen. Sæt tasten under *Indstillinger → Keybindings →
+  Gnistify → "Mål lederens mål"*, eller tryk *Lav makro* i `/gnist` og træk makroen op på en
+  action bar. Vinduet viser lederens mål og siger til, hvis du ikke har det samme, og
+  der lyder et lille ping, når lederen skifter til en ny fjende. Lederen kan kun
+  skiftes uden for kamp (et valg i kamp virker, så snart kampen er slut).
 - **:gnist:** skriv `:gnist:` i chatten for at vise en lille gnist. Kun dem med addonen
   ser billedet.
 
@@ -29,6 +38,9 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
 |---|---|
 | `/gnist` | Åbner indstillinger, hvor du kan slå hver funktion til og fra |
 | `/gnist hjælp` | Viser alle kommandoer |
+| `/gnist leder` | Gør dit target til leder, eller åbner leder-vinduet |
+| `/gnist leder Navn` / `mig` / `ingen` | Vælger en leder ved navn, dig selv, eller ingen |
+| `/gnist makro` | Laver makroen "GnistMål", som tager lederens mål |
 
 ## Ny version (for udviklere)
 

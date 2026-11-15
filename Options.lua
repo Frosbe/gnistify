@@ -2,6 +2,7 @@
 -- feature. The same checkboxes are also added to the game's own
 -- Options -> AddOns list when the client supports it.
 
+local ns = select(2, ...)
 local GNIST_ICON = "|TInterface\\AddOns\\Gnistify\\emojis\\gnist:0|t"
 
 local OPTIONS = {
@@ -15,6 +16,14 @@ local OPTIONS = {
     { key = "killSound", label = "Spil lyd ved drab" },
     { key = "killBanner", label = "Stor tekst midt på skærmen ved drab" },
     { key = "killsSend", label = "Del mine drab med guilden" },
+    { header = "Battleground (leder)" },
+    { key = "callerFrame",  label = "Vis leder-vinduet i BG og dungeons" },
+    { key = "callerFollow", label = "Følg leder valgt af andre" },
+    { key = "callerSound",  label = "Lyd når lederen skifter mål" },
+    { buttons = {
+        { label = "Åbn leder-vindue", func = function() ns.OpenCallerWindow() end },
+        { label = "Lav makro",        func = function() ns.MakeCallerMacro() end },
+    } },
     { header = "Chat" },
     { key = "emojis",    label = "Vis :gnist: emoji i chatten" },
 }
@@ -29,6 +38,17 @@ local function Build(parent, x, y)
             h:SetPoint("TOPLEFT", x, y)
             h:SetText(o.header)
             y = y - 20
+        elseif o.buttons then
+            local bx = x + 4
+            for _, def in ipairs(o.buttons) do
+                local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+                b:SetSize(124, 22)
+                b:SetPoint("TOPLEFT", bx, y - 2)
+                b:SetText(def.label)
+                b:SetScript("OnClick", def.func)
+                bx = bx + 130
+            end
+            y = y - 28
         else
             local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
             cb:SetSize(26, 26)
@@ -39,6 +59,7 @@ local function Build(parent, x, y)
             cb.key = o.key
             cb:SetScript("OnClick", function(self)
                 GnistifyDB[self.key] = self:GetChecked() and true or false
+                if ns.RefreshCaller then ns.RefreshCaller() end
             end)
             checks[#checks + 1] = cb
             y = y - 26
@@ -52,7 +73,7 @@ end
 
 -- Stand-alone window -----------------------------------------------------
 local win = CreateFrame("Frame", "GnistifyOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(300, 382)
+win:SetSize(300, 514)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)

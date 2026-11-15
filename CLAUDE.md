@@ -50,6 +50,8 @@ All text the players see is in **Danish**. Keep it that way.
 | `Emojis.lua` | Chat filter that turns `:gnist:` into a picture. |
 | `Options.lua` | Settings window (`/gnist`) with one checkbox per feature. The same checkboxes are added to the game's Options → AddOns list (`Settings.RegisterCanvasLayoutCategory`, or `InterfaceOptions_AddCategory` as a fallback). To add a setting: give it a default in `ADDON_LOADED` in `Gnistify.lua` and add an entry to `OPTIONS`. |
 | `Kills.lua` | PvP killing-blow announcements (see below). Shares `ns.PREFIX`, `ns.Short` and `ns.Print` from `Gnistify.lua` through the addon namespace. |
+| `Caller.lua` | Battleground shot caller ("leder") and the assist button (see below). |
+| `Bindings.xml` | Key binding "Mål lederens mål" (`CLICK GnistAssistButton:LeftButton`). Loaded by the client from the addon folder; **not** listed in the `.toc`. |
 | `sound.mp3` | The user's own ~1 sec sound, played via `PlaySoundFile` whenever a guild kill is shown (setting `killSound`). |
 | `emojis/gnist.tga` | 64×64 32-bit uncompressed TGA spark (yellow/orange, drawn with a small Python script). |
 
@@ -127,11 +129,42 @@ for the middle of the screen.
 - **Compatibility:** older versions ignore `KILL;` messages, because they only match
   `^DING:`.
 
+## Shot caller (`Caller.lua`)
+
+For battlegrounds: the group picks one shot caller ("leder"), and everyone presses one
+key to target the caller's target.
+
+- **Targeting is protected.** Addon code may never call `TargetUnit`/`AssistUnit`.
+  The hidden secure button `GnistAssistButton` (`SecureActionButtonTemplate`,
+  `type="assist"`, `unit=<caller's raidN/partyN token>`) does the targeting. Players
+  press it with the key binding in `Bindings.xml` or a macro `/click GnistAssistButton`
+  (`/gnist makro` creates the character macro `GnistMål` and puts it on the cursor).
+  It's registered for `AnyUp` and `AnyDown`, so it works with either "cast on key
+  down" setting; assisting twice is harmless.
+- Unit tokens, not names, because targeting by name is unreliable with Forever
+  surnames (see `Spy/Forever.lua`, `Spy:TargetMacro`).
+- **Secure attributes can't change in combat.** A caller picked in combat, or a roster
+  change in combat, sets `pending` and is applied on `PLAYER_REGEN_ENABLED`.
+- **Sharing:** picking a caller sends `LEDER;<First Surname>` (empty = none) on the
+  `GnistDing` prefix to `INSTANCE_CHAT`, `RAID` or `PARTY`. Receivers in the same group
+  follow it if `callerFollow` is on. The caller re-sends it (throttled) on
+  `GROUP_ROSTER_UPDATE` so newcomers learn it. The caller is saved in
+  `GnistifyDB.callerName`, the window position in `GnistifyDB.callerPos`.
+- **Window:** opens by itself when in a group inside a battleground, arena or dungeon
+  (`IsInInstance` type `pvp`, `arena`, `party`; setting `callerFrame`). Anywhere else
+  only by hand: `/gnist leder` or the "Åbn leder-vindue" button in `/gnist` (which also
+  has a "Lav makro" button). Its X hides it until the next loading screen.
+  Shows the caller, the caller's target (`UNIT_TARGET`) and whether you have the same
+  target. Plays `SOUNDKIT.MAP_PING` when the caller switches to a new enemy you don't
+  have targeted (`callerSound`, at most every 1.5 sec).
+
 ## Settings and commands
 
 Settings are stored in the `GnistifyDB` saved variable, and all of them default to on:
 `dings` (show guild dings at all), `sound`, `banner`, `guildChat`, `kills` (show the
-guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kills as a raid-warning banner too), `killsSend` (send my own kills to the guild), `emojis`.
+guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kills as a raid-warning banner too), `killsSend` (send my own kills to the guild), `emojis`, `callerFrame` (open the leader
+window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller picked by others), `callerSound`
+(ping when the caller changes target).
 
 | Command | Effect |
 |---|---|
@@ -142,6 +175,8 @@ guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kil
 | `/gnist banner` | Toggle the banner in the middle of the screen |
 | `/gnist drab` | Toggle showing the guild's PvP kills in chat |
 | `/gnist emojis` | List the available emojis |
+| `/gnist leder [navn\|mig\|ingen]` | Make your target (or the named member, yourself, nobody) the caller; with no target, open the leader window |
+| `/gnist makro` | Create the `GnistMål` macro and put it on the cursor |
 
 ## Emojis (`Emojis.lua`)
 

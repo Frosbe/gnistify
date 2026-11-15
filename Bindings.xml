@@ -1,0 +1,7 @@
+<!-- Gnistify key binding: "Mål lederens mål" (target the shot caller's target).
+     Not listed in Gnistify.toc: the client loads Bindings.xml from the addon
+     folder by itself. The label globals are set in Caller.lua. -->
+<Bindings>
+	<Binding name="CLICK GnistAssistButton:LeftButton" category="BINDING_HEADER_GNISTIFY">
+	</Binding>
+</Bindings>
