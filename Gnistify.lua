@@ -199,7 +199,7 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.emojis == nil then db.emojis = true end
         if db.callerFrame == nil then db.callerFrame = true end
         if db.callerFollow == nil then db.callerFollow = true end
-        if db.callerSound == nil then db.callerSound = true end
+        if db.callerSound == nil then db.callerSound = false end
         if db.fishing == nil then db.fishing = true end
         if db.fishingSound == nil then db.fishingSound = true end
         if db.fishingBanner == nil then db.fishingBanner = true end
@@ -212,6 +212,16 @@ f:SetScript("OnEvent", function(_, event, ...)
         end
 
     elseif event == "PLAYER_LOGIN" then
+        if Me() == "Mink Jageren" then
+            StaticPopupDialogs["GNISTIFY_JAEGEREN"] = {
+                text = "Du har stavet Jægeren forkert",
+                button1 = OKAY or "OK",
+                timeout = 0,
+                whileDead = true,
+                hideOnEscape = true,
+            }
+            StaticPopup_Show("GNISTIFY_JAEGEREN")
+        end
         RequestRoster()
         if C_Timer and C_Timer.NewTicker then
             C_Timer.NewTicker(ROSTER_POLL, RequestRoster)
