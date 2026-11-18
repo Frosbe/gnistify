@@ -1,6 +1,6 @@
 ## Interface: 16001, 11509
 ## Title: |cffffcc00Gnist|r|cffff6600ify|r
-## Notes: Ding, PvP-drab og :gnist: for guilden Gnisterne. Længe leve gnisten!
+## Notes: Ding, PvP-drab, fiskeri og :gnist: for guilden Gnisterne. Længe leve gnisten!
 ## Author: Gnisterne
 ## Version: @project-version@
 ## SavedVariables: GnistifyDB
@@ -9,5 +9,6 @@
 Gnistify.lua
 Emojis.lua
 Kills.lua
+Fishing.lua
 Caller.lua
 Options.lua

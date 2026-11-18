@@ -16,6 +16,12 @@ local OPTIONS = {
     { key = "killSound", label = "Spil lyd ved drab" },
     { key = "killBanner", label = "Stor tekst midt på skærmen ved drab" },
     { key = "killsSend", label = "Del mine drab med guilden" },
+    { header = "Fiskeri" },
+    { key = "fishing",       label = "Vis guildens fangster og fiske-dings" },
+    { key = "fishingSound",  label = "Spil lyd ved store fangster" },
+    { key = "fishingBanner", label = "Stor tekst midt på skærmen ved fangst" },
+    { key = "fishingSend",   label = "Del mine fangster med guilden" },
+    { key = "fishingSplash", label = "Højere plask når jeg fisker" },
     { header = "Battleground (leder)" },
     { key = "callerFrame",  label = "Vis leder-vinduet i BG og dungeons" },
     { key = "callerFollow", label = "Følg leder valgt af andre" },
@@ -60,6 +66,7 @@ local function Build(parent, x, y)
             cb:SetScript("OnClick", function(self)
                 GnistifyDB[self.key] = self:GetChecked() and true or false
                 if ns.RefreshCaller then ns.RefreshCaller() end
+                if ns.RefreshFishing then ns.RefreshFishing() end
             end)
             checks[#checks + 1] = cb
             y = y - 26
@@ -73,7 +80,7 @@ end
 
 -- Stand-alone window -----------------------------------------------------
 local win = CreateFrame("Frame", "GnistifyOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(300, 514)
+win:SetSize(300, 670)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)

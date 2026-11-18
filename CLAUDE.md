@@ -50,6 +50,7 @@ All text the players see is in **Danish**. Keep it that way.
 | `Emojis.lua` | Chat filter that turns `:gnist:` into a picture. |
 | `Options.lua` | Settings window (`/gnist`) with one checkbox per feature. The same checkboxes are added to the game's Options → AddOns list (`Settings.RegisterCanvasLayoutCategory`, or `InterfaceOptions_AddCategory` as a fallback). To add a setting: give it a default in `ADDON_LOADED` in `Gnistify.lua` and add an entry to `OPTIONS`. |
 | `Kills.lua` | PvP killing-blow announcements (see below). Shares `ns.PREFIX`, `ns.Short` and `ns.Print` from `Gnistify.lua` through the addon namespace. |
+| `Fishing.lua` | Fishing catches, fishing skill dings, fish today and the louder splash (see below). |
 | `Caller.lua` | Battleground shot caller ("leder") and the assist button (see below). |
 | `Bindings.xml` | Key binding "Mål lederens mål" (`CLICK GnistAssistButton:LeftButton`). Loaded by the client from the addon folder; **not** listed in the `.toc`. |
 | `sound.mp3` | The user's own ~1 sec sound, played via `PlaySoundFile` whenever a guild kill is shown (setting `killSound`). |
@@ -129,6 +130,29 @@ for the middle of the screen.
 - **Compatibility:** older versions ignore `KILL;` messages, because they only match
   `^DING:`.
 
+## Fishing (`Fishing.lua`)
+
+For the guild's anglers. Settings `fishing` (show), `fishingSound`, `fishingBanner`,
+`fishingSend` (share mine), `fishingSplash`.
+
+- **Catch detection:** `LOOT_OPENED` with `IsFishingLoot()` (fallback: my Fishing channel
+  ended under 3 sec ago). One loot window = one catch; `counted` resets on `LOOT_CLOSED`.
+- **Notable:** quality green or better, a name in `NOTABLE_NAMES` (English, lower case),
+  or a name containing a word from `NOTABLE_WORDS` (chests). Shown with a random line
+  from `CATCH_MSGS` and a banner from `CATCH_BANNERS`, plus the game's fishing reel-in
+  sound (`SOUNDKIT.FISHING_REEL_IN`, 3407).
+- **Fish today:** `GnistifyDB.fishToday = { day, counts = { [name] = n } }` holds me and
+  every angler who sent a count today. Counts in `TALLY` are announced. `/gnist fisk`
+  shows the top 5.
+- **Skill:** `CHAT_MSG_SKILL` parsed with a pattern built from `SKILL_RANK_UP`. Every 25
+  points is announced; 75/150/225/300 (`SKILL_TITLES`) get a banner and sound 888.
+- **Messages** on `GnistDing`: `FISK;count;zone;itemLink` on every catch (link empty unless
+  notable) and `FSKILL;skill`. Receivers ignore their own echo. Append fields only.
+- **Louder splash:** on the player's Fishing `UNIT_SPELLCAST_CHANNEL_START` the sound
+  CVars in `SPLASH_CVARS` are saved to `GnistifyDB.fishingSaved` and changed; they are
+  restored 10 sec after the last channel stop, on logout, at login (crash) and when the
+  setting is turned off (`ns.RefreshFishing`).
+
 ## Shot caller (`Caller.lua`)
 
 For battlegrounds: the group picks one shot caller ("leder"), and everyone presses one
@@ -177,7 +201,8 @@ Settings are stored in the `GnistifyDB` saved variable, and all of them default 
 `dings` (show guild dings at all), `sound`, `banner`, `guildChat`, `kills` (show the
 guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kills as a raid-warning banner too), `killsSend` (send my own kills to the guild), `emojis`, `callerFrame` (open the leader
 window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller picked by others), `callerSound`
-(ping when the caller changes target).
+(ping when the caller changes target), `fishing`, `fishingSound`, `fishingBanner`,
+`fishingSend`, `fishingSplash`.
 
 | Command | Effect |
 |---|---|
@@ -187,6 +212,7 @@ window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller p
 | `/gnist guild` | Toggle the guild chat post when you ding |
 | `/gnist banner` | Toggle the banner in the middle of the screen |
 | `/gnist drab` | Toggle showing the guild's PvP kills in chat |
+| `/gnist fisk` | Show today's catch counts in the guild |
 | `/gnist emojis` | List the available emojis |
 | `/gnist leder [navn\|mig\|ingen]` | Make your target (or the named member, yourself, nobody) the caller; with no target, open the leader window |
 | `/gnist makro` | Create the `GnistMål` macro and put it on the cursor |

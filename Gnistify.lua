@@ -200,6 +200,11 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.callerFrame == nil then db.callerFrame = true end
         if db.callerFollow == nil then db.callerFollow = true end
         if db.callerSound == nil then db.callerSound = true end
+        if db.fishing == nil then db.fishing = true end
+        if db.fishingSound == nil then db.fishingSound = true end
+        if db.fishingBanner == nil then db.fishingBanner = true end
+        if db.fishingSend == nil then db.fishingSend = true end
+        if db.fishingSplash == nil then db.fishingSplash = true end
         if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
             C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
         elseif RegisterAddonMessagePrefix then
@@ -291,6 +296,8 @@ SlashCmdList.GNISTIFY = function(input)
     elseif cmd == "drab" or cmd == "kills" then
         db.kills = not db.kills
         Print("Vis guildens drab i chatten: " .. onoff(db.kills))
+    elseif cmd == "fisk" or cmd == "fishing" then
+        ns.FishingCommand()
     elseif cmd == "leder" or cmd == "caller" then
         ns.CallerCommand(rest)
     elseif cmd == "makro" or cmd == "macro" then
@@ -306,6 +313,7 @@ SlashCmdList.GNISTIFY = function(input)
         Print("  /gnist guild  - skriv i guild chat når du dinger " .. onoff(db.guildChat))
         Print("  /gnist banner - stor tekst på skærmen " .. onoff(db.banner))
         Print("  /gnist drab   - vis guildens drab i chatten " .. onoff(db.kills))
+        Print("  /gnist fisk   - vis dagens fangst i guilden")
         Print("  /gnist emojis - vis alle :emojis: du kan skrive i chatten")
         Print("  /gnist leder  - vælg dit mål som leder (eller åbn leder-vinduet)")
         Print("  /gnist leder <navn> / mig / ingen - vælg leder")

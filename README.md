@@ -23,6 +23,12 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   højreklikke og trække. Vinduet viser lederens mål og siger til, hvis du ikke har det samme, og
   der lyder et lille ping, når lederen skifter til en ny fjende. Lederen kan kun
   skiftes uden for kamp (et valg i kamp virker, så snart kampen er slut).
+- **Fiskeri:** når en fra guilden fanger noget særligt (grønt eller bedre, sjældne fisk
+  som Old Ironjaw, eller en kiste), ser alle med addonen fx *"Bo halede [Old Ironjaw]
+  op af vandet i Ironforge! (dagens fisk nr. 47)"*. Fiskeri-skill fejres for hver 25
+  point, og 75/150/225/300 fejres som et ding. 25, 50, 100 ... fisk på en dag bliver
+  også meldt ud, og `/gnist fisk` viser dagens bedste fiskere. Mens du fisker, skrues
+  der op for lydeffekter og ned for musik, så du nemt hører plasket.
 - **:gnist:** skriv `:gnist:` i chatten for at vise en lille gnist. Kun dem med addonen
   ser billedet.
 
@@ -38,6 +44,7 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
 | Kommando | Hvad den gør |
 |---|---|
 | `/gnist` | Åbner indstillinger, hvor du kan slå hver funktion til og fra |
+| `/gnist fisk` | Viser dagens fangst i guilden |
 | `/gnist hjælp` | Viser alle kommandoer |
 | `/gnist leder` | Gør dit target til leder, eller åbner leder-vinduet |
 | `/gnist leder Navn` / `mig` / `ingen` | Vælger en leder ved navn, dig selv, eller ingen |
