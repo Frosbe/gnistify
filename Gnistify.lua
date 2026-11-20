@@ -212,16 +212,6 @@ f:SetScript("OnEvent", function(_, event, ...)
         end
 
     elseif event == "PLAYER_LOGIN" then
-        if Me() == "Mink Jageren" then
-            StaticPopupDialogs["GNISTIFY_JAEGEREN"] = {
-                text = "Du har stavet Jægeren forkert",
-                button1 = OKAY or "OK",
-                timeout = 0,
-                whileDead = true,
-                hideOnEscape = true,
-            }
-            StaticPopup_Show("GNISTIFY_JAEGEREN")
-        end
         RequestRoster()
         if C_Timer and C_Timer.NewTicker then
             C_Timer.NewTicker(ROSTER_POLL, RequestRoster)
