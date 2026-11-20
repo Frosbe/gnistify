@@ -21,7 +21,7 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   Gnistify → "Mål lederens mål"*, eller tryk *Lav makro* i `/gnist` og træk makroen op på en
   action bar. Du kan også bare klikke på Leder-vinduet. Flyt vinduet ved at
   højreklikke og trække. Vinduet viser lederens mål og siger til, hvis du ikke har det samme, og
-  der lyder et lille ping, når lederen skifter til en ny fjende. Lederen kan kun
+  der kan lyde et lille ping, når lederen skifter til en ny fjende (slås til i `/gnist`). Lederen kan kun
   skiftes uden for kamp (et valg i kamp virker, så snart kampen er slut).
 - **Fiskeri:** når en fra guilden fanger noget særligt (grønt eller bedre, sjældne fisk
   som Old Ironjaw, eller en kiste), ser alle med addonen fx *"Bo halede [Old Ironjaw]

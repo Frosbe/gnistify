@@ -197,11 +197,12 @@ key to target the caller's target.
 
 ## Settings and commands
 
-Settings are stored in the `GnistifyDB` saved variable, and all of them default to on:
+Settings are stored in the `GnistifyDB` saved variable, and all of them except `callerSound`
+default to on:
 `dings` (show guild dings at all), `sound`, `banner`, `guildChat`, `kills` (show the
 guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kills as a raid-warning banner too), `killsSend` (send my own kills to the guild), `emojis`, `callerFrame` (open the leader
 window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller picked by others), `callerSound`
-(ping when the caller changes target), `fishing`, `fishingSound`, `fishingBanner`,
+(ping when the caller changes target, default off), `fishing`, `fishingSound`, `fishingBanner`,
 `fishingSend`, `fishingSplash`.
 
 | Command | Effect |
