@@ -297,7 +297,7 @@ local function FillList()
         b.name = e.name
         if e.name then
             local mark = (e.name == GnistifyDB.callerName) and " |cffffcc00<|r" or ""
-            b.text:SetText("|c" .. ClassColor(e.unit) .. e.name .. "|r" .. mark)
+            b.text:SetText("|c" .. ClassColor(e.unit) .. ns.Alias(e.name) .. "|r" .. mark)
         else
             b.text:SetText("|cff999999Ingen leder|r")
         end
@@ -367,7 +367,7 @@ local function FillWindow()
         line3:SetText("")
         return
     end
-    line1:SetText("|cffffcc00Leder:|r " .. (unit and ("|c" .. ClassColor(unit) .. name .. "|r") or name))
+    line1:SetText("|cffffcc00Leder:|r " .. ns.Alias(unit and ("|c" .. ClassColor(unit) .. name .. "|r") or name))
     if not unit then
         line2:SetText("|cff999999Ikke i din gruppe|r")
         line3:SetText("")
@@ -378,7 +378,7 @@ local function FillWindow()
     local enemy
     if tname then
         enemy = Readable(UnitCanAttack("player", tunit))
-        line2:SetText("Mål: " .. (enemy and "|cffff4040" or "|cffffffff") .. tname .. "|r")
+        line2:SetText("Mål: " .. (enemy and "|cffff4040" or "|cffffffff") .. ns.Alias(tname) .. "|r")
         if unit == "player" or name == Me() then
             line3:SetText("|cff00ff00Du er leder - de andre følger dit mål|r")
         elseif Readable(UnitIsUnit("target", tunit)) then
