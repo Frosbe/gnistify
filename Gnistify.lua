@@ -267,6 +267,8 @@ f:SetScript("OnEvent", function(_, event, ...)
         local level = msg:match("^DING:(%d+)$")
         if level and Short(sender) ~= Me() then
             Celebrate(sender, level)
+        elseif msg == "GNISTREGN" and Short(sender) ~= Me() then
+            ns.PlayCrownSound("big")
         end
 
     elseif event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN" then
@@ -305,6 +307,9 @@ SlashCmdList.GNISTIFY = function(input)
         local big = rest:lower() == "stor"
         ns.PlayCrownSound(big and "big" or "small")
         Print(big and "fire.mp3" or "dexter.mp3")
+    elseif cmd == "startfire" then
+        ns.PlayCrownSound("big")
+        if IsInGuild() then SendAddon("GNISTREGN") end
     elseif cmd == "fisk" or cmd == "fishing" then
         ns.FishingCommand()
     elseif cmd == "leder" or cmd == "caller" then

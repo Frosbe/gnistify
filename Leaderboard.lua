@@ -1,6 +1,8 @@
 -- Gnistify PvP-tavle: a world PvP leaderboard for Gnisterne.
 --
--- Every killing blow on an enemy player OUTSIDE battlegrounds and arenas counts.
+-- Every kill of an enemy player OUTSIDE battlegrounds and arenas counts: the
+-- killing blow, and helping (damaging the victim or healing in the fight, read
+-- from the game's damage meter after combat; see Helpers in Kills.lua).
 -- The board ranks guild members by kills today, this week (from Monday), this
 -- month and of all time. #1 in each gets a title (an honour):
 --   I dag: Dagens Gnistsprutter    Uge: Ugens Brandfakkel
@@ -30,13 +32,14 @@ local Readable = ns.Readable
 local GNIST_ICON = "|TInterface\\AddOns\\Gnistify\\emojis\\gnist:0|t"
 local KEEP_DAYS = 40      -- day counts older than this are thrown away (total stays)
 local SEND_GAP = 1.1      -- seconds between queued records (the game throttles addon messages)
-local ROWS = 5            -- names shown per list
+local MIN_ROWS = 5        -- the window is never shorter than this many rows
+local MAX_ROWS = 25       -- names shown per list; the rest becomes "... og N mere"
 
 local PERIODS = {
     { key = "today", label = "I dag",       titles = { "Dagens Gnistsprutter" } },
     { key = "week",  label = "Denne uge",   titles = { "Ugens Brandfakkel" } },
     { key = "month", label = "Denne måned", titles = { "Månedens Bålkonge" } },
-    { key = "all",   label = "Nogensinde",  titles = { "Gnistkejseren", "Gnistprinsen", "Gnistridderen" } },
+    { key = "all",   label = "All-time største slambert",  titles = { "Gnistkejseren", "Gnistprinsen", "Gnistridderen" } },
 }
 -- Shown when a kill makes someone the new (sole) #1. {name}, {titles}
 local CROWN_MSGS = {
@@ -329,7 +332,7 @@ local function Receive(msg)
     if ns.RefreshElite then pcall(ns.RefreshElite) end
 end
 
--- A kill of mine (called by Kills.lua after the kill line is shown) ----------
+-- A kill of mine, or one I helped with (called by Kills.lua) ----------------
 
 function ns.LeaderboardKill()
     local _, instanceType = IsInInstance()
@@ -353,10 +356,13 @@ function ns.LeaderboardKill()
 end
 
 -- Window -------------------------------------------------------------------
+-- Four lists side by side (today, week, month, all time). The window grows
+-- with the longest list, so the whole guild fits (up to MAX_ROWS each).
 
-local CELL_W, CELL_H = 260, 150
+local COL_W, ROW_H = 250, 18
+local TOP, LIST_TOP = -34, -78   -- header row, first name row (from the window top)
 local win = CreateFrame("Frame", "GnistifyPvPFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(CELL_W * 2 + 30, CELL_H * 2 + 70)
+win:SetWidth(COL_W * #PERIODS + 32)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)
@@ -378,66 +384,94 @@ footer:SetText("Kun killing blows i world PvP tæller (ikke BG og arena).")
 
 local cells = {}
 for i, p in ipairs(PERIODS) do
-    local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-    local x, y = 16 + col * CELL_W, -32 - row * CELL_H
-    local c = { period = p, rows = {} }
-    c.header = win:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    c.header:SetPoint("TOPLEFT", x, y)
+    local x = 16 + (i - 1) * COL_W
+    local c = { period = p, rows = {}, x = x }
+    c.header = win:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    c.header:SetPoint("TOPLEFT", x + 4, TOP)
+    c.header:SetWidth(COL_W - 12)
+    c.header:SetJustifyH("LEFT")
     c.header:SetText(p.label)
     c.sub = win:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    c.sub:SetPoint("TOPLEFT", x, y - 16)
+    c.sub:SetPoint("TOPLEFT", x + 4, TOP - 22)
     c.sub:SetText("Titel: " .. p.titles[1])
-    for r = 1, ROWS do
-        local ry = y - 34 - (r - 1) * 16
-        local name = win:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        name:SetPoint("TOPLEFT", x + 4, ry)
-        name:SetWidth(CELL_W - 50)
-        name:SetJustifyH("LEFT")
-        name:SetWordWrap(false)
-        local n = win:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        n:SetPoint("TOPRIGHT", win, "TOPLEFT", x + CELL_W - 14, ry)
-        n:SetJustifyH("RIGHT")
-        c.rows[r] = { name = name, n = n }
-    end
     c.me = win:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    c.me:SetPoint("TOPLEFT", x + 4, y - 36 - ROWS * 16)
     cells[i] = c
+end
+
+-- Row r of a list, made the first time it's needed
+local function Row(c, r)
+    local row = c.rows[r]
+    if row then return row end
+    local y = LIST_TOP - (r - 1) * ROW_H
+    row = {}
+    if r % 2 == 0 then   -- faint stripes make long lists easier to read
+        row.bg = win:CreateTexture(nil, "BACKGROUND", nil, 1)
+        row.bg:SetColorTexture(1, 1, 1, 0.04)
+        row.bg:SetPoint("TOPLEFT", c.x, y + 2)
+        row.bg:SetSize(COL_W - 6, ROW_H)
+    end
+    row.name = win:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    row.name:SetPoint("TOPLEFT", c.x + 4, y)
+    row.name:SetWidth(COL_W - 50)
+    row.name:SetJustifyH("LEFT")
+    row.name:SetWordWrap(false)
+    row.n = win:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    row.n:SetPoint("TOPRIGHT", win, "TOPLEFT", c.x + COL_W - 12, y)
+    row.n:SetJustifyH("RIGHT")
+    c.rows[r] = row
+    return row
+end
+
+local function SetRow(row, name, n)
+    row.name:SetText(name)
+    row.n:SetText(n)
+    row.name:Show(); row.n:Show()
+    if row.bg then row.bg:Show() end
+end
+
+local function HideRow(row)
+    row.name:Hide(); row.n:Hide()
+    if row.bg then row.bg:Hide() end
 end
 
 Refresh = function()
     if not win:IsShown() then return end
     local me = ns.Me()
+    local tallest = MIN_ROWS
     for _, c in ipairs(cells) do
         local list = Ranked(c.period.key)
-        local myRank
+        local shown = math.min(#list, MAX_ROWS)
+        local myRank, mine
         for i, e in ipairs(list) do
-            if e.name == me then myRank = RankOf(list, i) end
+            if e.name == me then myRank, mine = RankOf(list, i), e.n end
         end
-        for r, row in ipairs(c.rows) do
+        for r = 1, math.max(shown, 1, #c.rows) do
             local e = list[r]
-            if e then
+            if r <= shown then
                 local rank = RankOf(list, r)
                 local color = e.name == me and "ff6600" or "ffffff"
-                local t = c.period.titles[rank]
-                row.name:SetText(("|cff%s%d.|r |cff%s%s|r%s"):format(MEDALS[rank] or "aaaaaa", rank,
-                    color, e.name, t and (" |cffffcc00(" .. t .. ")|r") or ""))
-                row.n:SetText(e.n)
+                -- #1's title is in the header; only #2 and #3 all-time get theirs here
+                local t = rank > 1 and c.period.titles[rank]
+                SetRow(Row(c, r), ("|cff%s%d.|r |cff%s%s|r%s"):format(MEDALS[rank] or "aaaaaa", rank,
+                    color, e.name, t and (" |cffffcc00(" .. t .. ")|r") or ""), e.n)
             elseif r == 1 then
-                row.name:SetText("|cffaaaaaaIngen drab endnu. Gnisten venter...|r")
-                row.n:SetText("")
-            else
-                row.name:SetText("")
-                row.n:SetText("")
+                SetRow(Row(c, 1), "|cffaaaaaaIngen drab endnu|r", "")
+            elseif c.rows[r] then
+                HideRow(c.rows[r])
             end
         end
-        if myRank and myRank > ROWS then
-            local mine = 0
-            for _, e in ipairs(list) do if e.name == me then mine = e.n end end
-            c.me:SetText(("Dig: nr. %d med %d drab"):format(myRank, mine))
-        else
-            c.me:SetText("")
+        -- Under the list: how many more, and where I am if I'm not shown
+        local extra = {}
+        if #list > shown then extra[#extra + 1] = ("... og %d mere"):format(#list - shown) end
+        if myRank and myRank > shown then
+            extra[#extra + 1] = ("Dig: nr. %d med %d drab"):format(myRank, mine)
         end
+        c.me:ClearAllPoints()
+        c.me:SetPoint("TOPLEFT", c.x + 4, LIST_TOP - math.max(shown, 1) * ROW_H - 4)
+        c.me:SetText(table.concat(extra, "  "))
+        tallest = math.max(tallest, shown + (#extra > 0 and 1 or 0))
     end
+    win:SetHeight(-LIST_TOP + tallest * ROW_H + 44)
 end
 
 win:SetScript("OnShow", Refresh)

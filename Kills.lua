@@ -184,6 +184,220 @@ local function Assists()
     return table.concat(names, ",")
 end
 
+-- Helpers ---------------------------------------------------------------------
+-- Everyone in my group who damaged the victim or healed during the fight gets
+-- the kill on the PvP-tavle too, not just the one with the killing blow.
+-- Forever's own damage meter (C_DamageMeter) knows who: its "enemy damage
+-- taken" list breaks each enemy's damage down per group member, and "healing
+-- done" lists the healers. The numbers are secret in combat and readable after,
+-- so the killer's client reads them once combat ends and sends
+--   HELP;victim;classFile;Name:d,Name:dh,...,+N
+-- (d = damaged the victim, h = healed in the fight, n = only nearby: the meter
+-- had nothing, so it's the old guess and gives no credit). Every client shows
+-- who helped; a helper with Gnistify adds the kill to their own record
+-- (ns.LeaderboardKill). Older versions ignore HELP.
+local HELP_TRIES = 5      -- seconds to wait for the meter to turn readable after combat
+local HELP_BYTES = 240    -- addon messages max out at 255 bytes
+local pendingHelp = {}    -- kills waiting for combat to end: { guid, victim, class, nearby, session }
+local creditedAt = {}     -- "killer;victim" -> GetTime(), so one kill is never counted twice
+
+local function IsSecret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
+
+local function Open(t)
+    return type(t) == "table" and not IsSecret(t) and not (canaccesstable and not canaccesstable(t))
+end
+
+-- t[key], or nil when t or the value is secret
+local function Field(t, key)
+    if not Open(t) then return nil end
+    local ok, v = pcall(function() return t[key] end)
+    if ok and not IsSecret(v) then return v end
+end
+
+local function MeterReady()
+    return C_DamageMeter and C_DamageMeter.GetCombatSessionFromType
+        and C_DamageMeter.GetCombatSessionSourceFromType and Enum and Enum.DamageMeterType
+        and Enum.DamageMeterType.EnemyDamageTaken and Enum.DamageMeterSessionType and true or false
+end
+
+-- The fight going on now. Its number (not the numbers in it) is public in
+-- combat, and reading it by number later still works after a new fight starts.
+local function LiveSessionID()
+    if not C_DamageMeter.GetAvailableCombatSessions or not C_DamageMeter.GetCombatSessionFromID then return nil end
+    local ok, list = pcall(C_DamageMeter.GetAvailableCombatSessions)
+    if not ok or not Open(list) or #list == 0 then return nil end
+    local id = Field(list[#list], "sessionID")
+    return type(id) == "number" and id or nil
+end
+
+local function GetSession(id, dmType)
+    if id then return pcall(C_DamageMeter.GetCombatSessionFromID, id, dmType) end
+    return pcall(C_DamageMeter.GetCombatSessionFromType, Enum.DamageMeterSessionType.Current, dmType)
+end
+
+local function GetSource(id, dmType, guid, creature)
+    if id then return pcall(C_DamageMeter.GetCombatSessionSourceFromID, id, dmType, guid, creature) end
+    return pcall(C_DamageMeter.GetCombatSessionSourceFromType, Enum.DamageMeterSessionType.Current,
+        dmType, guid, creature)
+end
+
+-- Who hit this victim and who healed in the fight: { [name] = "d" / "h" / "dh" }.
+-- nil while the meter is still secret or doesn't know the victim.
+local function ReadHelpers(guid, id)
+    local T = Enum.DamageMeterType
+    local ok, session = GetSession(id, T.EnemyDamageTaken)
+    local list = ok and Field(session, "combatSources")
+    if not Open(list) then return nil end
+    local victim
+    for _, src in ipairs(list) do
+        if Field(src, "sourceGUID") == guid then victim = src break end
+    end
+    if not victim then return nil end
+    local okD, detail = GetSource(id, T.EnemyDamageTaken, guid, Field(victim, "sourceCreatureID"))
+    local spells = okD and Field(detail, "combatSpells")
+    if not Open(spells) then return nil end
+
+    local roles = {}
+    local function Add(name, role)
+        name = type(name) == "string" and name ~= "" and ns.Short(name)
+        if not name then return end
+        local r = roles[name] or ""
+        if not r:find(role, 1, true) then roles[name] = r .. role end
+    end
+    local function AddUnit(d)
+        if Field(d, "isPet") or Field(d, "isMob") then return end   -- a hunter's pet counts as the hunter
+        Add(Field(d, "unitName"), "d")
+    end
+    -- One entry per group member who hit him; the amount is on the entry
+    for _, sp in ipairs(spells) do
+        local amount = Field(sp, "totalAmount")
+        local d = Field(sp, "combatSpellDetails")
+        if type(amount) == "number" and amount > 0 and Open(d) then
+            if Field(d, "unitName") ~= nil then
+                AddUnit(d)
+            else
+                for _, x in ipairs(d) do AddUnit(x) end
+            end
+        end
+    end
+    local okH, heal = GetSession(id, T.HealingDone)
+    local healers = okH and Field(heal, "combatSources")
+    if Open(healers) then
+        for _, src in ipairs(healers) do
+            local amount = Field(src, "totalAmount")
+            if type(amount) == "number" and amount > 0 then Add(Field(src, "name"), "h") end
+        end
+    end
+    return roles
+end
+
+local ROLE_TEXT = { d = "skade", h = "heling", dh = "skade og heling", n = "i nærheden" }
+
+local function ShowHelpers(victim, classFile, list)
+    if not GnistifyDB.kills then return end
+    local parts, credit = {}, false
+    for entry in (list or ""):gmatch("[^,]+") do
+        local extra = entry:match("^%+(%d+)$")
+        if extra then
+            parts[#parts + 1] = extra .. (extra == "1" and " anden" or " andre")
+        else
+            local name, role = entry:match("^(.-):(%a*)$")
+            name = name or entry
+            if role ~= "n" then credit = true end
+            local r = ROLE_TEXT[role or ""]
+            parts[#parts + 1] = "|cffff6600" .. name .. "|r" .. (r and (" (" .. r .. ")") or "")
+        end
+    end
+    if #parts == 0 then return end
+    DEFAULT_CHAT_FRAME:AddMessage(GNIST_ICON .. " |cffffcc00Hjalp med drabet på|r "
+        .. ColoredName(victim, classFile) .. ": " .. JoinNames(parts)
+        .. (credit and " |cffaaaaaa(tæller på PvP-tavlen)|r" or ""))
+end
+
+-- A guildie's HELP message names me: the kill is mine too
+local function Credit(killer, victim, list)
+    local me = ns.Me()
+    if not me or killer == me then return end
+    local key = killer .. ";" .. victim
+    if creditedAt[key] and GetTime() - creditedAt[key] < 60 then return end
+    for entry in (list or ""):gmatch("[^,]+") do
+        local name, role = entry:match("^(.-):(%a*)$")
+        if (name or entry) == me and role ~= "n" then
+            creditedAt[key] = GetTime()
+            if ns.LeaderboardKill then ns.LeaderboardKill() end
+            return
+        end
+    end
+end
+
+local function SendHelpers(job, roles)
+    local me = ns.Me()
+    local names = {}
+    for name in pairs(roles) do
+        if name ~= me then names[#names + 1] = name end
+    end
+    table.sort(names)
+    local entries, extra = {}, 0
+    local size = #"HELP;;;" + #job.victim + #(job.class or "")
+    for _, name in ipairs(names) do
+        local e = name .. ":" .. roles[name]
+        if size + #e + 6 <= HELP_BYTES then
+            entries[#entries + 1] = e
+            size = size + #e + 1
+        else
+            extra = extra + 1
+        end
+    end
+    if extra > 0 then entries[#entries + 1] = "+" .. extra end
+    if #entries == 0 then return end
+    local list = table.concat(entries, ",")
+    ShowHelpers(job.victim, job.class, list)
+    if IsInGuild() and GnistifyDB.killsSend then
+        ns.SendAddon(table.concat({ "HELP", job.victim, job.class or "", list }, ";"))
+    end
+end
+
+-- Combat is over: read the meter for every kill of this fight
+local function ProcessHelp()
+    if #pendingHelp == 0 then return end
+    if Readable(InCombatLockdown()) or Readable(UnitAffectingCombat("player")) then return end
+    local jobs = pendingHelp
+    pendingHelp = {}
+    for _, job in ipairs(jobs) do
+        local tries = 0
+        local function Try()
+            local roles = ReadHelpers(job.guid, job.session)
+            if not roles and job.session then roles = ReadHelpers(job.guid, nil) end
+            tries = tries + 1
+            if roles then
+                SendHelpers(job, roles)
+            elseif tries < HELP_TRIES then
+                C_Timer.After(1, Try)
+            else
+                -- The meter had nothing: show the old "nearby" guess, without credit
+                local nearby = {}
+                for n in (job.nearby or ""):gmatch("[^,]+") do
+                    if not n:find("^%+") then nearby[n] = "n" end
+                end
+                SendHelpers(job, nearby)
+            end
+        end
+        C_Timer.After(1, Try)
+    end
+end
+
+-- Called with my killing blow. False when the old "nearby" list must be used.
+local function QueueHelpers(guid, victim, classFile, nearby)
+    if not MeterReady() or not C_Timer then return false end
+    local count = (GetNumGroupMembers and GetNumGroupMembers()) or 0
+    if count == 0 then return true end   -- alone: nobody to thank
+    pendingHelp[#pendingHelp + 1] = {
+        guid = guid, victim = victim, class = classFile, nearby = nearby, session = LiveSessionID(),
+    }
+    C_Timer.After(2, ProcessHelp)   -- in case combat is already over (pet kills)
+    return true
+end
+
 local function OnKillingBlow(guid)
     -- Never twice for one death (a late PARTY_KILL after the pet fallback)
     local last = announcedAt[guid]
@@ -210,6 +424,8 @@ local function OnKillingBlow(guid)
     local me = ns.Me() or "?"
     local count = CountKill(me)
     local assists = Assists()
+    -- Who really helped comes after combat (HELP); until then no "(med ...)"
+    if QueueHelpers(guid, victim, classFile, assists) then assists = "" end
 
     -- I see my own kill (and hear the sound) right away
     Show(me, victim, level, classFile, zone, assists, count)
@@ -268,6 +484,7 @@ local f = CreateFrame("Frame")
 for _, event in ipairs({
     "PARTY_KILL", "CHAT_MSG_ADDON", "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT",
     "NAME_PLATE_UNIT_ADDED", "UNIT_LEVEL", "PLAYER_ENTERING_WORLD", "UNIT_DIED", "UNIT_PET",
+    "PLAYER_REGEN_ENABLED",
 }) do
     pcall(f.RegisterEvent, f, event)   -- an unknown event must not break the rest
 end
@@ -294,9 +511,18 @@ f:SetScript("OnEvent", function(_, event, ...)
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, msg, _, sender = ...
         prefix, msg, sender = Readable(prefix), Readable(msg), Readable(sender)
-        if prefix ~= PREFIX or type(msg) ~= "string" or not msg:find("^KILL;") then return end
+        if prefix ~= PREFIX or type(msg) ~= "string" then return end
         local killer = ns.Short(sender)
         if not killer or killer == ns.Me() then return end   -- already shown
+        if msg:find("^HELP;") then
+            local _, victim, classFile, list = strsplit(";", msg)
+            if victim and list then
+                ShowHelpers(victim, classFile ~= "" and classFile or nil, list)
+                Credit(killer, victim, list)
+            end
+            return
+        end
+        if not msg:find("^KILL;") then return end
         local _, victim, level, classFile, zone, count, assists = strsplit(";", msg)
         if victim then
             killedNames[victim] = GetTime()
@@ -314,7 +540,10 @@ f:SetScript("OnEvent", function(_, event, ...)
         OnUnitDied((...))
     elseif event == "UNIT_TARGET" or event == "UNIT_PET" then
         NotePetTarget()
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        C_Timer.After(1, ProcessHelp)
     elseif event == "PLAYER_ENTERING_WORLD" then
+        GnistifyDB.dmDump = nil   -- left over from testing the damage meter
         wipe(seen)
         wipe(petTargets)
     end

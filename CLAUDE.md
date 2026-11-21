@@ -127,10 +127,23 @@ for the middle of the screen.
   versions only read the first five. Only ever append new fields at the end.
 - **Kills today:** `count` is the killer's kills today, kept per character in
   `GnistifyDB.killCount[name] = { day = "YYYY-MM-DD", n = N }`.
-- **Assists:** `assists` is a comma-separated list of group members near the killer
-  (`UnitInRange`, or `UnitIsVisible` when the range is hidden), at most 4 names plus
-  `+N`. It's shown as "(med Anna og Bo)". The combat log is closed on Forever, so we
-  can't see who actually damaged the victim; "nearby" is the best guess.
+- **Helpers (who really helped):** Forever has the game's own damage meter
+  (`C_DamageMeter`, the source Details and Light Damage use). It's secret in combat and
+  readable after. Its `EnemyDamageTaken` list has one source per enemy (by GUID);
+  `GetCombatSessionSourceFromType/FromID` for that enemy gives one `combatSpells` entry
+  per group member who hit him (`totalAmount`, `combatSpellDetails.unitName`).
+  `HealingDone` lists the healers of the fight. On my killing blow while grouped, the
+  fight's `sessionID` (public in combat) is noted; after `PLAYER_REGEN_ENABLED` the
+  killer reads damage dealers to the victim plus healers and sends
+  `HELP;victim;classFile;Name:d,Name:dh,...,+N` (d damage, h heal, n nearby only).
+  Every client shows "Hjalp til med drabet på X: ...", and a named helper's own client
+  calls `ns.LeaderboardKill()`, so helpers get the kill on the PvP-tavle too (the
+  user's wish). Helpers without Gnistify are shown but can't be credited, since each
+  player owns their own record. If the meter has nothing after 5 sec, the old
+  "nearby" guess is sent with role `n`, which gives no credit.
+- **Assists field:** `assists` in `KILL;` is now empty when the meter will send
+  `HELP` later. Without the meter it's still the "nearby" list (`UnitInRange`, or
+  `UnitIsVisible`), at most 4 names plus `+N`, shown as "(med Anna og Bo)".
 - **Victim name, class and level:** `PARTY_KILL` only gives GUIDs. Name, class and
   level are cached per GUID from the target, mouseover, focus, nameplates and
   `UNIT_LEVEL`, so they're still known after the nameplate disappears.
@@ -143,9 +156,11 @@ for the middle of the screen.
 
 ## PvP leaderboard (`Leaderboard.lua`)
 
-Ranks guild members by world PvP killing blows today, this week (from Monday), this
-month and of all time. Kills in battlegrounds and arenas (`IsInInstance` type `pvp`,
-`arena`) don't count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill.
+Ranks guild members by world PvP kills today, this week (from Monday), this
+month and of all time. A kill is a killing blow or helping with one (see Helpers
+above). Kills in battlegrounds and arenas (`IsInInstance` type `pvp`, `arena`) don't
+count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill, and when a
+`HELP` message names me.
 
 - **Titles** (the user wants these to feel like an honour): #1 today "Dagens
   Gnistsprutter", week "Ugens Brandfakkel", month "Månedens Bålkonge", all time
@@ -168,7 +183,11 @@ month and of all time. Kills in battlegrounds and arenas (`IsInInstance` type `p
   records; a queued record is dropped when someone else sends the same or newer one,
   and hearing an older record queues ours as a correction. The queue sends one record
   per 1.1 sec. My own record isn't sent if `killsSend` is off.
-- `/gnist top` (`tavle`, `pvp`) or the "Åbn PvP-tavle" button opens the window.
+- `/gnist top` (`tavle`, `pvp`) or the "Åbn PvP-tavle" button opens the window: four
+  lists side by side (the all-time one is headed "All-time største slambert", the
+  user's wording). It shows every player (up to `MAX_ROWS`, then "... og N mere") and
+  grows in height with the longest list. #1's title is in each header; only all-time
+  #2/#3 show theirs after the name.
 
 ## Fishing (`Fishing.lua`)
 
