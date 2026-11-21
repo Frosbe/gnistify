@@ -183,6 +183,15 @@ count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill, and when 
   records; a queued record is dropped when someone else sends the same or newer one,
   and hearing an older record queues ours as a correction. The queue sends one record
   per 1.1 sec. My own record isn't sent if `killsSend` is off.
+- **Reset by vote:** `/gnist reset` sends `LBVOTE;epoch;name`; everyone online gets a
+  `StaticPopup` (`GNISTIFY_RESET`) and answers with `LBYES;epoch` (or `/gnist ja`). At
+  `RESET_VOTES` (4, the asker counts) yes within `VOTE_TIME` (90 sec) every client wipes
+  `pvpBoard` and `killCount` and stores `GnistifyDB.boardEpoch` = the vote's server time.
+  Every `LB;` record carries the epoch as its last field (missing = 0). A record from an
+  older epoch is ignored and answered with `LBRESET;epoch` (throttled); a newer epoch
+  wipes my copy first. On `LBREQ`, clients with an epoch send `LBRESET` too, so friends
+  who were offline wipe their copy at login. Versions without epochs never reset and
+  are ignored once a reset has happened.
 - `/gnist top` (`tavle`, `pvp`) or the "Åbn PvP-tavle" button opens the window: four
   lists side by side (the all-time one is headed "All-time største slambert", the
   user's wording). It shows every player (up to `MAX_ROWS`, then "... og N mere") and
@@ -273,6 +282,8 @@ window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller p
 | `/gnist banner` | Toggle the banner in the middle of the screen |
 | `/gnist drab` | Toggle showing the guild's PvP kills in chat |
 | `/gnist top` | Open the world PvP leaderboard |
+| `/gnist reset` | Ask the guild to reset the PvP-tavle (popup for everyone, 4 yes needed) |
+| `/gnist ja` | Vote yes to a reset (same as the popup's button) |
 | `/gnist fisk` | Show today's catch counts in the guild |
 | `/gnist emojis` | List the available emojis |
 | `/gnist leder [navn\|mig\|ingen]` | Make your target (or the named member, yourself, nobody) the caller; with no target, open the leader window |

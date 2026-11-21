@@ -24,6 +24,15 @@
 --       else sends the same or a newer one first, and anyone hearing an older
 --       record than their own queues theirs as a correction. That way records
 --       of players who are offline still travel from friend to friend.
+--
+-- Reset by vote: "/gnist reset" asks everyone online; at RESET_VOTES "ja" every
+-- kill counter is wiped. Each reset starts a new "epoch" (the server time of
+-- the vote), sent as the last field of every LB record. Records from an older
+-- epoch are ignored, so a friend who was offline can't bring the old counts
+-- back; instead they're told about the reset and wipe their copy too.
+--   LBVOTE;epoch;name    name asks to reset (and votes yes)
+--   LBYES;epoch          a yes vote
+--   LBRESET;epoch        a reset happened (for those who missed the vote)
 
 local ns = select(2, ...)
 local PREFIX = ns.PREFIX
@@ -246,6 +255,42 @@ end
 -- Window (defined further down) ---------------------------------------------
 local Refresh
 
+-- Resets -------------------------------------------------------------------
+
+local RESET_VOTES = 4      -- yes votes needed (the one asking counts)
+local VOTE_TIME = 90       -- seconds a vote stays open
+local RESET_NOTICE_GAP = 30   -- at most one LBRESET from me this often
+
+local function Epoch()
+    return GnistifyDB.boardEpoch or 0
+end
+
+local function ServerTime()
+    return (GetServerTime and Readable(GetServerTime())) or time()
+end
+
+local lastResetNotice = 0
+local function SendResetNotice()
+    if Epoch() == 0 or not IsInGuild() then return end
+    if GetTime() - lastResetNotice < RESET_NOTICE_GAP then return end
+    lastResetNotice = GetTime()
+    ns.SendAddon("LBRESET;" .. Epoch())
+end
+
+local ClearQueue   -- the send queue, defined under Sending
+
+-- Wipe every kill counter and start epoch e
+local function AdoptEpoch(e, why)
+    if e <= Epoch() then return end
+    GnistifyDB.boardEpoch = e
+    wipe(Board())
+    GnistifyDB.killCount = {}
+    if ClearQueue then ClearQueue() end
+    ns.Print("|cffffcc00PvP-tavlen er nulstillet!|r " .. (why or "") .. " Alle drab starter forfra.")
+    if Refresh then Refresh() end
+    if ns.RefreshElite then pcall(ns.RefreshElite) end
+end
+
 -- Sending ------------------------------------------------------------------
 
 local function Encode(name)
@@ -266,7 +311,8 @@ local function SendRecord(name, live)
     -- Turned off sharing my kills: don't spread my own record either
     if name == ns.Me() and not GnistifyDB.killsSend then return end
     local msg = Encode(name)
-    if msg then ns.SendAddon(msg .. ";" .. (live and "1" or "0")) end
+    -- The epoch goes last: older versions read only the fields before it
+    if msg then ns.SendAddon(msg .. ";" .. (live and "1" or "0") .. ";" .. Epoch()) end
 end
 
 local queue, queued, sending = {}, {}, false
@@ -296,6 +342,11 @@ local function Queue(name)
     end
 end
 
+ClearQueue = function()
+    wipe(queue)
+    wipe(queued)
+end
+
 local function QueueAll()
     for name in pairs(Board()) do Queue(name) end
 end
@@ -303,9 +354,15 @@ end
 -- Receiving ----------------------------------------------------------------
 
 local function Receive(msg)
-    local _, name, total, start, counts, live = strsplit(";", msg)
-    total, start = tonumber(total), tonumber(start)
+    local _, name, total, start, counts, live, epoch = strsplit(";", msg)
+    total, start, epoch = tonumber(total), tonumber(start), tonumber(epoch) or 0
     if type(name) ~= "string" or name == "" or not total or not start or total < 0 then return end
+    if epoch < Epoch() then
+        SendResetNotice()          -- from before a reset: tell them, don't take it
+        return
+    elseif epoch > Epoch() then
+        AdoptEpoch(epoch)          -- they know of a reset I missed
+    end
     local board = Board()
     local rec = board[name]
     local have = rec and rec.total or -1
@@ -353,6 +410,111 @@ function ns.LeaderboardKill()
     SendRecord(me, true)
     if Refresh then Refresh() end
     if ns.RefreshElite then pcall(ns.RefreshElite) end
+end
+
+-- Reset vote ---------------------------------------------------------------
+
+local vote   -- { epoch, by, yes = { [name] = true }, ends }
+
+local function VoteCount()
+    local n = 0
+    for _ in pairs(vote.yes) do n = n + 1 end
+    return n
+end
+
+local function EndVote()
+    vote = nil
+    if StaticPopup_Hide then pcall(StaticPopup_Hide, "GNISTIFY_RESET") end
+end
+
+local function AddYes(epoch, name)
+    if not vote or vote.epoch ~= epoch or not name or vote.yes[name] then return end
+    vote.yes[name] = true
+    local n = VoteCount()
+    if n >= RESET_VOTES then
+        local e = vote.epoch
+        EndVote()
+        AdoptEpoch(e, "(" .. n .. " stemte ja)")
+    else
+        ns.Print("Nulstil PvP-tavlen: |cff00ff00" .. name .. "|r stemte ja (" .. n .. "/" .. RESET_VOTES .. ").")
+    end
+end
+
+local function VoteYes()
+    if not vote then
+        ns.Print("Der er ingen afstemning lige nu.")
+        return
+    end
+    local me = ns.Me()
+    if vote.yes[me] then return end
+    ns.SendAddon("LBYES;" .. vote.epoch)
+    AddYes(vote.epoch, me)
+end
+
+local function StartVote(epoch, by)
+    if vote and GetTime() < vote.ends then return false end
+    vote = { epoch = epoch, by = by, yes = {}, ends = GetTime() + VOTE_TIME }
+    C_Timer.After(VOTE_TIME, function()
+        if vote and vote.epoch == epoch then
+            ns.Print("Afstemningen om at nulstille PvP-tavlen er slut. Der kom kun "
+                .. VoteCount() .. " af " .. RESET_VOTES .. " ja. Intet er nulstillet.")
+            EndVote()
+        end
+    end)
+    return true
+end
+
+if StaticPopupDialogs then
+    StaticPopupDialogs["GNISTIFY_RESET"] = {
+        text = "%s vil nulstille ALLE drab på PvP-tavlen.\n\nEr du enig? Der skal "
+            .. RESET_VOTES .. " ja til.",
+        button1 = "Ja, nulstil",
+        button2 = "Nej",
+        OnAccept = function() VoteYes() end,
+        timeout = VOTE_TIME,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+end
+
+-- /gnist reset
+function ns.ResetCommand()
+    if not IsInGuild() then
+        ns.Print("Du skal være i en guild for at nulstille PvP-tavlen.")
+        return
+    end
+    if vote and GetTime() < vote.ends then
+        ns.Print("Der er allerede en afstemning i gang (" .. VoteCount() .. "/" .. RESET_VOTES .. " ja).")
+        return
+    end
+    local epoch = math.max(ServerTime(), Epoch() + 1)
+    local me = ns.Me()
+    StartVote(epoch, me)
+    ns.SendAddon("LBVOTE;" .. epoch .. ";" .. me)
+    ns.Print("Du har bedt om at nulstille PvP-tavlen. Der skal " .. RESET_VOTES
+        .. " ja til inden for " .. VOTE_TIME .. " sek. Du har selv stemt ja.")
+    AddYes(epoch, me)
+end
+
+function ns.ResetVoteYes() VoteYes() end
+
+local function ReceiveVote(msg, sender)
+    local kind, epoch, by = strsplit(";", msg)
+    epoch = tonumber(epoch)
+    if not epoch then return end
+    if kind == "LBRESET" then
+        AdoptEpoch(epoch, "(" .. sender .. " fortalte om en nulstilling, du gik glip af.)")
+    elseif kind == "LBVOTE" then
+        if epoch <= Epoch() then return end
+        by = (by and by ~= "") and by or sender
+        if not StartVote(epoch, by) then return end
+        AddYes(epoch, by)
+        ns.Print("|cffff6600" .. by .. "|r vil nulstille PvP-tavlen. Stem ja i vinduet eller med /gnist ja.")
+        if StaticPopup_Show then pcall(StaticPopup_Show, "GNISTIFY_RESET", by) end
+    elseif kind == "LBYES" then
+        AddYes(epoch, sender)
+    end
 end
 
 -- Window -------------------------------------------------------------------
@@ -513,8 +675,13 @@ f:SetScript("OnEvent", function(_, event, ...)
         if ns.Short(sender) == ns.Me() then return end   -- my own echo
         if msg == "LBREQ" then
             QueueAll()
+            if Epoch() > 0 and C_Timer then
+                C_Timer.After(math.random() * 4, SendResetNotice)   -- a newcomer may have missed a reset
+            end
         elseif msg:find("^LB;") then
             Receive(msg)
+        elseif msg:find("^LB%u+;") then
+            ReceiveVote(msg, ns.Short(sender))
         end
     end
 end)

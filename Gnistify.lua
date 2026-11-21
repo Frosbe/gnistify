@@ -310,6 +310,10 @@ SlashCmdList.GNISTIFY = function(input)
     elseif cmd == "startfire" then
         ns.PlayCrownSound("big")
         if IsInGuild() then SendAddon("GNISTREGN") end
+    elseif cmd == "reset" or cmd == "nulstil" then
+        ns.ResetCommand()
+    elseif cmd == "ja" or cmd == "yes" then
+        ns.ResetVoteYes()
     elseif cmd == "fisk" or cmd == "fishing" then
         ns.FishingCommand()
     elseif cmd == "leder" or cmd == "caller" then
@@ -328,6 +332,8 @@ SlashCmdList.GNISTIFY = function(input)
         Print("  /gnist banner - stor tekst på skærmen " .. onoff(db.banner))
         Print("  /gnist drab   - vis guildens drab i chatten " .. onoff(db.kills))
         Print("  /gnist top    - vis guildens PvP-tavle (world PvP)")
+        Print("  /gnist reset  - foreslå at nulstille PvP-tavlen (kræver 4 ja)")
+        Print("  /gnist ja     - stem ja til at nulstille PvP-tavlen")
         Print("  /gnist fisk   - vis dagens fangst i guilden")
         Print("  /gnist emojis - vis alle :emojis: du kan skrive i chatten")
         Print("  /gnist leder  - vælg dit mål som leder (eller åbn leder-vinduet)")
