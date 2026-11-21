@@ -51,9 +51,12 @@ All text the players see is in **Danish**. Keep it that way.
 | `Options.lua` | Settings window (`/gnist`) with one checkbox per feature. The same checkboxes are added to the game's Options → AddOns list (`Settings.RegisterCanvasLayoutCategory`, or `InterfaceOptions_AddCategory` as a fallback). To add a setting: give it a default in `ADDON_LOADED` in `Gnistify.lua` and add an entry to `OPTIONS`. |
 | `Kills.lua` | PvP killing-blow announcements (see below). Shares `ns.PREFIX`, `ns.Short` and `ns.Print` from `Gnistify.lua` through the addon namespace. |
 | `Leaderboard.lua` | World PvP leaderboard ("PvP-tavle") and its sync (see below). |
+| `Minimap.lua` | Minimap button (hand-made, no LibDBIcon): left click PvP-tavle, right click settings, drag to move (`GnistifyDB.minimapAngle`). Tooltip lists title holders (`ns.TitleHolders`). Setting `minimapIcon`. |
+| `Elite.lua` | The classic elite dragon around PvP leaders' portraits (player, party, target frames): rare-elite (winged) for Gnistkejseren, gold elite for #1 this month, silver rare for #1 today/week (`ns.EliteKind`). Falls back to gold if the client lacks the rare-elite texture. Texture coords and placement copied from Leatrix Plus' player chain. Setting `eliteFrames`. |
 | `Fishing.lua` | Fishing catches, fishing skill dings, fish today and the louder splash (see below). |
 | `Caller.lua` | Battleground shot caller ("leder") and the assist button (see below). |
 | `Bindings.xml` | Key binding "Mål lederens mål" (`CLICK GnistAssistButton:LeftButton`). Loaded by the client from the addon folder; **not** listed in the `.toc`. |
+| `dexter.mp3`, `fire.mp3` | Title sounds for the PvP leaderboard (quieter copies; originals in `art/sounds/`). |
 | `sound.mp3` | The user's own ~1 sec sound, played via `PlaySoundFile` whenever a guild kill is shown (setting `killSound`). |
 | `emojis/gnist.tga` | 64×64 32-bit uncompressed TGA spark (yellow/orange, drawn with a small Python script). |
 
@@ -148,8 +151,13 @@ month and of all time. Kills in battlegrounds and arenas (`IsInInstance` type `p
   Gnistsprutter", week "Ugens Brandfakkel", month "Månedens Bålkonge", all time
   "Gnistkejseren", #2/#3 all time "Gnistprinsen"/"Gnistridderen". Ties share a title.
   `ns.LeaderTitle(name)` gives the best one; the kill line shows it as `[title]` after
-  the killer. When a live kill makes someone the sole #1, a line from `CROWN_MSGS` is
-  shown (and a banner for a new Gnistkejser).
+  the killer. When a live kill makes someone the sole #1, "Ny leder på PvP-tavlen!" plus
+  a line from `CROWN_MSGS` is shown (and a banner for a new Gnistkejser).
+- **Title sounds** (setting `crownSound`): one sound per kill, `fire.mp3` if the kill won
+  month or all time, else `dexter.mp3`. Played on the `SFX` channel after `sound.mp3`
+  has finished (`ns.lastKillSound`). While one is playing, a new one is skipped unless
+  it's fire cutting off dexter (`StopSound`). The files are lowered to about -24 LUFS
+  with ffmpeg; the originals are in `art/sounds/`. Re-lower any replacement the same way.
 - **Data:** `GnistifyDB.pvpBoard[name] = { total, days = { [dayNumber] = n } }`, a copy
   of everyone's record. Day number = local noon `time()` / 86400. Days older than 40
   are pruned at login; `total` stays.
@@ -232,7 +240,7 @@ key to target the caller's target.
 Settings are stored in the `GnistifyDB` saved variable, and all of them except `callerSound`
 default to on:
 `dings` (show guild dings at all), `sound`, `banner`, `guildChat`, `kills` (show the
-guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kills as a raid-warning banner too), `killsSend` (send my own kills to the guild), `emojis`, `callerFrame` (open the leader
+guild's kills), `killSound` (play `sound.mp3` on a kill), `killBanner` (show kills as a raid-warning banner too), `killsSend` (send my own kills to the guild), `minimapIcon` (the minimap button), `crownSound` (sound for a new leaderboard #1), `eliteFrames` (elite dragon on leaders' portraits), `emojis`, `callerFrame` (open the leader
 window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller picked by others), `callerSound`
 (ping when the caller changes target, default off), `fishing`, `fishingSound`, `fishingBanner`,
 `fishingSend`, `fishingSplash`.

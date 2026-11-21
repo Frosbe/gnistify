@@ -48,6 +48,16 @@ local CROWN_MSGS = {
 }
 local MEDALS = { "ffd700", "c0c0c0", "cd7f32" }
 
+-- Title sounds. One per kill, never on top of each other: a new month/all-time
+-- #1 gets the big one, a new today/week #1 the small one. The files are made
+-- quieter than the originals in art/sounds (about -24 LUFS) so they sit a bit
+-- under the game's own sounds.
+local CROWN_SOUNDS = {
+    small = { file = "Interface\\AddOns\\Gnistify\\dexter.mp3", length = 10.7, rank = 1 },
+    big   = { file = "Interface\\AddOns\\Gnistify\\fire.mp3",   length = 13.6, rank = 2 },
+}
+local KILL_SOUND_LENGTH = 1.1   -- sound.mp3, played with the kill line
+
 -- Days ---------------------------------------------------------------------
 
 -- A whole number per calendar day (local time). Noon, so daylight saving
@@ -119,6 +129,41 @@ function ns.LeaderTitle(name)
         or PeriodTitle(PERIODS[2], name) or PeriodTitle(PERIODS[1], name)
 end
 
+-- Which elite dragon a name gets on unit frames (Elite.lua): "rareelite" for
+-- Gnistkejseren, "elite" (gold) for #1 this month, "rare" (silver) for #1
+-- today or this week.
+function ns.EliteKind(name)
+    if not name or not GnistifyDB or not GnistifyDB.pvpBoard then return nil end
+    local function first(p)
+        local list = Ranked(p.key)
+        for i, e in ipairs(list) do
+            if RankOf(list, i) > 1 then return false end
+            if e.name == name then return true end
+        end
+        return false
+    end
+    if first(PERIODS[4]) then return "rareelite" end
+    if first(PERIODS[3]) then return "elite" end
+    if first(PERIODS[2]) or first(PERIODS[1]) then return "rare" end
+    return nil
+end
+
+-- Everyone holding a title right now: { { title, name, n }, ... } in period order
+-- (today, week, month, all time). For the minimap tooltip.
+function ns.TitleHolders()
+    local out = {}
+    if not GnistifyDB or not GnistifyDB.pvpBoard then return out end
+    for _, p in ipairs(PERIODS) do
+        local list = Ranked(p.key)
+        for i, e in ipairs(list) do
+            local t = p.titles[RankOf(list, i)]
+            if not t then break end
+            out[#out + 1] = { title = t, name = e.name, n = e.n }
+        end
+    end
+    return out
+end
+
 -- Who is alone at the top of each period
 local function SoleLeaders()
     local tops = {}
@@ -135,18 +180,47 @@ local function JoinWords(words)
     return table.concat(words, ", ", 1, #words - 1) .. " og " .. words[#words]
 end
 
+local playing   -- { handle, ends, rank } of the title sound playing now
+
+local function PlayCrownSound(which)
+    local s = CROWN_SOUNDS[which]
+    local now = GetTime()
+    if playing and now < playing.ends then
+        -- Something is playing: only a bigger sound may cut it off
+        if s.rank <= playing.rank then return end
+        if StopSound and playing.handle then StopSound(playing.handle, 500) end
+    end
+    local willPlay, handle = PlaySoundFile(s.file, "SFX")
+    if willPlay then playing = { handle = handle, ends = now + s.length, rank = s.rank } end
+end
+
+function ns.PlayCrownSound(which) PlayCrownSound(which) end
+
+-- Start the title sound once the kill sound is done, so they don't overlap
+local function CrownSound(which)
+    if not GnistifyDB.crownSound then return end
+    local wait = ns.lastKillSound and (KILL_SOUND_LENGTH - (GetTime() - ns.lastKillSound)) or 0
+    if wait > 0 and C_Timer then
+        C_Timer.After(wait, function() PlayCrownSound(which) end)
+    else
+        PlayCrownSound(which)
+    end
+end
+
 -- After a live kill: announce titles the killer has just taken
 local function AnnounceCrowns(name, before)
     if not GnistifyDB.kills then return end
-    local after, won = SoleLeaders(), {}
+    local after, won, big = SoleLeaders(), {}, false
     for _, p in ipairs(PERIODS) do
         if after[p.key] == name and before[p.key] ~= name then
             won[#won + 1] = "|cffffcc00" .. p.titles[1] .. "|r"
+            if p.key == "month" or p.key == "all" then big = true end
         end
     end
     if #won == 0 then return end
     local text = ns.Fill(ns.Pick(CROWN_MSGS), { name = "|cffff6600" .. name .. "|r", titles = JoinWords(won) })
-    DEFAULT_CHAT_FRAME:AddMessage(GNIST_ICON .. " " .. text)
+    DEFAULT_CHAT_FRAME:AddMessage(GNIST_ICON .. " |cffffcc00Ny leder på PvP-tavlen!|r " .. text)
+    CrownSound(big and "big" or "small")
     -- A new emperor deserves the big letters too
     if after.all == name and before.all ~= name and GnistifyDB.killBanner
        and RaidNotice_AddMessage and RaidWarningFrame then
@@ -252,6 +326,7 @@ local function Receive(msg)
     queued[name] = nil
     if before then AnnounceCrowns(name, before) end
     if Refresh then Refresh() end
+    if ns.RefreshElite then pcall(ns.RefreshElite) end
 end
 
 -- A kill of mine (called by Kills.lua after the kill line is shown) ----------
@@ -274,6 +349,7 @@ function ns.LeaderboardKill()
     queued[me] = nil
     SendRecord(me, true)
     if Refresh then Refresh() end
+    if ns.RefreshElite then pcall(ns.RefreshElite) end
 end
 
 -- Window -------------------------------------------------------------------

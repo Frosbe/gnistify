@@ -213,6 +213,9 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.callerFrame == nil then db.callerFrame = true end
         if db.callerFollow == nil then db.callerFollow = true end
         if db.callerSound == nil then db.callerSound = false end
+        if db.minimapIcon == nil then db.minimapIcon = true end
+        if db.crownSound == nil then db.crownSound = true end
+        if db.eliteFrames == nil then db.eliteFrames = true end
         if db.fishing == nil then db.fishing = true end
         if db.fishingSound == nil then db.fishingSound = true end
         if db.fishingBanner == nil then db.fishingBanner = true end
@@ -311,6 +314,10 @@ SlashCmdList.GNISTIFY = function(input)
         Print("Vis guildens drab i chatten: " .. onoff(db.kills))
     elseif cmd == "top" or cmd == "tavle" or cmd == "pvp" then
         ns.ToggleLeaderboard()
+    elseif cmd == "gnistregn" then
+        local big = rest:lower() == "stor"
+        ns.PlayCrownSound(big and "big" or "small")
+        Print(big and "fire.mp3" or "dexter.mp3")
     elseif cmd == "fisk" or cmd == "fishing" then
         ns.FishingCommand()
     elseif cmd == "leder" or cmd == "caller" then

@@ -137,6 +137,7 @@ local function Show(killer, victim, level, classFile, zone, assists, count)
     end
     if GnistifyDB.killSound then
         PlaySoundFile(KILL_SOUND, "Master")
+        ns.lastKillSound = GetTime()   -- Leaderboard.lua waits for it before a title sound
     end
 end
 

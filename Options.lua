@@ -16,9 +16,12 @@ local OPTIONS = {
     { key = "killSound", label = "Spil lyd ved drab" },
     { key = "killBanner", label = "Stor tekst midt på skærmen ved drab" },
     { key = "killsSend", label = "Del mine drab med guilden" },
+    { key = "crownSound", label = "Spil lyd ved ny leder på PvP-tavlen" },
+    { key = "eliteFrames", label = "Elite-drage om PvP-ledernes portræt" },
     { buttons = {
         { label = "Åbn PvP-tavle", func = function() ns.ToggleLeaderboard() end },
     } },
+    { key = "minimapIcon", label = "Vis gnist-knap ved minimap" },
     { header = "Fiskeri" },
     { key = "fishing",       label = "Vis guildens fangster og fiske-dings" },
     { key = "fishingSound",  label = "Spil lyd ved store fangster" },
@@ -70,6 +73,8 @@ local function Build(parent, x, y)
                 GnistifyDB[self.key] = self:GetChecked() and true or false
                 if ns.RefreshCaller then ns.RefreshCaller() end
                 if ns.RefreshFishing then ns.RefreshFishing() end
+                if ns.RefreshMinimap then ns.RefreshMinimap() end
+                if ns.RefreshElite then pcall(ns.RefreshElite) end
             end)
             checks[#checks + 1] = cb
             y = y - 26
@@ -83,7 +88,7 @@ end
 
 -- Stand-alone window -----------------------------------------------------
 local win = CreateFrame("Frame", "GnistifyOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(300, 698)
+win:SetSize(300, 776)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)
