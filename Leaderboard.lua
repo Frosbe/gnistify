@@ -420,7 +420,7 @@ Refresh = function()
                 local color = e.name == me and "ff6600" or "ffffff"
                 local t = c.period.titles[rank]
                 row.name:SetText(("|cff%s%d.|r |cff%s%s|r%s"):format(MEDALS[rank] or "aaaaaa", rank,
-                    color, ns.Alias(e.name), t and (" |cffffcc00(" .. t .. ")|r") or ""))
+                    color, e.name, t and (" |cffffcc00(" .. t .. ")|r") or ""))
                 row.n:SetText(e.n)
             elseif r == 1 then
                 row.name:SetText("|cffaaaaaaIngen drab endnu. Gnisten venter...|r")

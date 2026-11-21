@@ -31,7 +31,7 @@ local function ShowTooltip(self)
         GameTooltip:AddLine("Ingen titler endnu. Gnisten venter...", 0.7, 0.7, 0.7)
     end
     for _, h in ipairs(holders) do
-        GameTooltip:AddDoubleLine(h.title, ns.Alias(h.name) .. " (" .. h.n .. ")",
+        GameTooltip:AddDoubleLine(h.title, h.name .. " (" .. h.n .. ")",
             1, 0.8, 0, 1, 1, 1)
     end
     GameTooltip:AddLine(" ")

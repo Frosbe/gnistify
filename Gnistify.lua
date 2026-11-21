@@ -83,18 +83,6 @@ end
 
 local function Me() return FullName("player") end
 
--- Display aliases, stored reversed: { full name, first name, shown as }.
-local ALIASES = { { "tohsohcE ebsorF", "ebsorF", "netsinG" } }
-for _, a in ipairs(ALIASES) do for i = 1, #a do a[i] = a[i]:reverse() end end
-
-local function Alias(text)
-    if type(text) ~= "string" then return text end
-    for _, a in ipairs(ALIASES) do
-        text = text:gsub(a[1], a[3]):gsub("%f[%a]" .. a[2] .. "%f[%A]", a[3])
-    end
-    return text
-end
-
 local function Pick(templates) return templates[math.random(#templates)] end
 
 -- Fill in {key} placeholders from vars. color (optional) maps a key to a
@@ -103,7 +91,7 @@ local function Fill(text, vars, color)
     return (text:gsub("{(%a+)}", function(key)
         local v = vars[key]
         if v == nil then return nil end
-        v = Alias(tostring(v))
+        v = tostring(v)
         if color and color[key] then v = "|cff" .. color[key] .. v .. "|r" end
         return v
     end))
@@ -115,7 +103,7 @@ local function DingText(template, name, level, colored)
 end
 
 local function Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00[Gnist]|r " .. Alias(msg))
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00[Gnist]|r " .. msg)
 end
 
 local function SendAddon(msg)
@@ -131,7 +119,6 @@ end
 ns.PREFIX, ns.Short, ns.Print, ns.Readable, ns.SendAddon =
     PREFIX, Short, Print, Readable, SendAddon
 ns.FullName, ns.Me, ns.IS_FOREVER, ns.Fill, ns.Pick = FullName, Me, IS_FOREVER, Fill, Pick
-ns.Alias = Alias
 
 local function PlayDing()
     if GnistifyDB.sound then
