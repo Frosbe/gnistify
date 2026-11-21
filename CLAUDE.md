@@ -132,15 +132,23 @@ for the middle of the screen.
   readable after. Its `EnemyDamageTaken` list has one source per enemy (by GUID);
   `GetCombatSessionSourceFromType/FromID` for that enemy gives one `combatSpells` entry
   per group member who hit him (`totalAmount`, `combatSpellDetails.unitName`).
-  `HealingDone` lists the healers of the fight. On my killing blow while grouped, the
-  fight's `sessionID` (public in combat) is noted; after `PLAYER_REGEN_ENABLED` the
-  killer reads damage dealers to the victim plus healers and sends
-  `HELP;victim;classFile;Name:d,Name:dh,...,+N` (d damage, h heal, n nearby only).
-  Every client shows "Hjalp til med drabet på X: ...", and a named helper's own client
-  calls `ns.LeaderboardKill()`, so helpers get the kill on the PvP-tavle too (the
-  user's wish). Helpers without Gnistify are shown but can't be credited, since each
-  player owns their own record. If the meter has nothing after 5 sec, the old
-  "nearby" guess is sent with role `n`, which gives no credit.
+  `HealingDone` lists the healers of the fight, but not whom they healed, so healing
+  only counts for a healer who was near the killer (`IsNear`: `UnitInRange`, or
+  `UnitIsVisible`). The fight's `sessionID` (public in combat) is noted at the kill and
+  read after `PLAYER_REGEN_ENABLED` (up to 5 tries, 1 sec apart).
+  - **Credit is self-decided:** `PARTY_KILL` reaches every group member, whoever made
+    the kill (even without Gnistify). For a group member's kill, my client reads my own
+    meter after combat and calls `ns.LeaderboardKill()` if I damaged the victim, or
+    healed while near the killer (`QueueMyHelp` / `CreditMe`).
+  - **Display:** the killer's client sends `HELP;victim;classFile;Name:d,Name:dh,...,+N`
+    (d damage, h heal, n nearby only when the meter had nothing) and every client
+    shows "Hjalp til med drabet på X: ...". `HELP` gives no credit (1.0.16 and older
+    credited from it; this way nothing counts twice).
+- **Kill log:** the last 50 kill events, newest first, in `GnistifyDB.killLog`
+  (`kind` = `mine`, `mine-helpers`, `group-kill` with `damaged`/`healed`/`nearKiller`/
+  `credited`, `guild-kill`, `help-msg`, `reset`). Read it from SavedVariables when a
+  kill was credited wrong. `GnistifyDB.sendFailures` counts addon messages the game
+  refused to send (throttling), with the last one.
 - **Assists field:** `assists` in `KILL;` is now empty when the meter will send
   `HELP` later. Without the meter it's still the "nearby" list (`UnitInRange`, or
   `UnitIsVisible`), at most 4 names plus `+N`, shown as "(med Anna og Bo)".
@@ -159,8 +167,8 @@ for the middle of the screen.
 Ranks guild members by world PvP kills today, this week (from Monday), this
 month and of all time. A kill is a killing blow or helping with one (see Helpers
 above). Kills in battlegrounds and arenas (`IsInInstance` type `pvp`, `arena`) don't
-count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill, and when a
-`HELP` message names me.
+count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill, and when my
+own damage meter shows I helped with a group member's kill.
 
 - **Titles** (the user wants these to feel like an honour): #1 today "Dagens
   Gnistsprutter", week "Ugens Brandfakkel", month "Månedens Bålkonge", all time
@@ -189,7 +197,8 @@ count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill, and when 
   `pvpBoard` and `killCount` and stores `GnistifyDB.boardEpoch` = the vote's server time.
   Every `LB;` record carries the epoch as its last field (missing = 0). A record from an
   older epoch is ignored and answered with `LBRESET;epoch` (throttled); a newer epoch
-  wipes my copy first. On `LBREQ`, clients with an epoch send `LBRESET` too, so friends
+  wipes my copy first and, since I missed the vote, sends `LBREQ` 2 sec later to get
+  the kills made since the reset (otherwise my board stays too low). On `LBREQ`, clients with an epoch send `LBRESET` too, so friends
   who were offline wipe their copy at login. Versions without epochs never reset and
   are ignored once a reset has happened.
 - `/gnist top` (`tavle`, `pvp`) or the "Åbn PvP-tavle" button opens the window: four

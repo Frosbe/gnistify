@@ -108,7 +108,21 @@ end
 
 local function SendAddon(msg)
     local send = (C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
-    if send then pcall(send, PREFIX, msg, "GUILD") end
+    if not send then return end
+    local ok, result = pcall(send, PREFIX, msg, "GUILD")
+    result = Readable(result)
+    -- The game drops messages when we send too many: newer clients return a
+    -- result code (0 = sent), older ones true/false. Keep count, to find out
+    -- whether missed kills come from that.
+    if not ok or result == false or (type(result) == "number" and result ~= 0) then
+        if GnistifyDB then
+            local f = GnistifyDB.sendFailures or { n = 0 }
+            f.n = (f.n or 0) + 1
+            f.last = date("%Y-%m-%d %H:%M:%S") .. " " .. (msg:match("^[^;:]*") or "?")
+                .. " -> " .. tostring(ok and result or "error")
+            GnistifyDB.sendFailures = f
+        end
+    end
 end
 
 local function SendGuild(msg)

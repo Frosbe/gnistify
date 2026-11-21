@@ -279,14 +279,26 @@ end
 
 local ClearQueue   -- the send queue, defined under Sending
 
--- Wipe every kill counter and start epoch e
-local function AdoptEpoch(e, why)
+-- Wipe every kill counter and start epoch e. late: I missed the vote (or my
+-- client didn't count it to 4) and only hear of the reset now, so the others
+-- already have kills since the reset that I don't: ask for the whole board.
+local function AdoptEpoch(e, why, late)
     if e <= Epoch() then return end
     GnistifyDB.boardEpoch = e
+    if ns.KillLog then ns.KillLog({ kind = "reset", epoch = e, late = late or false }) end
     wipe(Board())
     GnistifyDB.killCount = {}
     if ClearQueue then ClearQueue() end
-    ns.Print("|cffffcc00PvP-tavlen er nulstillet!|r " .. (why or "") .. " Alle drab starter forfra.")
+    if late then
+        ns.Print("|cffffcc00PvP-tavlen er blevet nulstillet,|r mens du ikke var med. Henter tavlen fra de andre...")
+        if C_Timer then
+            C_Timer.After(2, function()
+                if IsInGuild() then ns.SendAddon("LBREQ") end
+            end)
+        end
+    else
+        ns.Print("|cffffcc00PvP-tavlen er nulstillet!|r " .. (why or "") .. " Alle drab starter forfra.")
+    end
     if Refresh then Refresh() end
     if ns.RefreshElite then pcall(ns.RefreshElite) end
 end
@@ -361,7 +373,7 @@ local function Receive(msg)
         SendResetNotice()          -- from before a reset: tell them, don't take it
         return
     elseif epoch > Epoch() then
-        AdoptEpoch(epoch)          -- they know of a reset I missed
+        AdoptEpoch(epoch, nil, true)   -- they know of a reset I missed
     end
     local board = Board()
     local rec = board[name]
@@ -504,7 +516,7 @@ local function ReceiveVote(msg, sender)
     epoch = tonumber(epoch)
     if not epoch then return end
     if kind == "LBRESET" then
-        AdoptEpoch(epoch, "(" .. sender .. " fortalte om en nulstilling, du gik glip af.)")
+        AdoptEpoch(epoch, nil, true)
     elseif kind == "LBVOTE" then
         if epoch <= Epoch() then return end
         by = (by and by ~= "") and by or sender
