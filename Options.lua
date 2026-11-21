@@ -16,6 +16,9 @@ local OPTIONS = {
     { key = "killSound", label = "Spil lyd ved drab" },
     { key = "killBanner", label = "Stor tekst midt på skærmen ved drab" },
     { key = "killsSend", label = "Del mine drab med guilden" },
+    { buttons = {
+        { label = "Åbn PvP-tavle", func = function() ns.ToggleLeaderboard() end },
+    } },
     { header = "Fiskeri" },
     { key = "fishing",       label = "Vis guildens fangster og fiske-dings" },
     { key = "fishingSound",  label = "Spil lyd ved store fangster" },
@@ -80,7 +83,7 @@ end
 
 -- Stand-alone window -----------------------------------------------------
 local win = CreateFrame("Frame", "GnistifyOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(300, 670)
+win:SetSize(300, 698)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)

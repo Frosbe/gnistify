@@ -9,6 +9,7 @@
 Gnistify.lua
 Emojis.lua
 Kills.lua
+Leaderboard.lua
 Fishing.lua
 Caller.lua
 Options.lua

@@ -50,6 +50,7 @@ All text the players see is in **Danish**. Keep it that way.
 | `Emojis.lua` | Chat filter that turns `:gnist:` into a picture. |
 | `Options.lua` | Settings window (`/gnist`) with one checkbox per feature. The same checkboxes are added to the game's Options → AddOns list (`Settings.RegisterCanvasLayoutCategory`, or `InterfaceOptions_AddCategory` as a fallback). To add a setting: give it a default in `ADDON_LOADED` in `Gnistify.lua` and add an entry to `OPTIONS`. |
 | `Kills.lua` | PvP killing-blow announcements (see below). Shares `ns.PREFIX`, `ns.Short` and `ns.Print` from `Gnistify.lua` through the addon namespace. |
+| `Leaderboard.lua` | World PvP leaderboard ("PvP-tavle") and its sync (see below). |
 | `Fishing.lua` | Fishing catches, fishing skill dings, fish today and the louder splash (see below). |
 | `Caller.lua` | Battleground shot caller ("leder") and the assist button (see below). |
 | `Bindings.xml` | Key binding "Mål lederens mål" (`CLICK GnistAssistButton:LeftButton`). Loaded by the client from the addon folder; **not** listed in the `.toc`. |
@@ -110,6 +111,13 @@ for the middle of the screen.
   stops duplicates when several guildies are grouped together. Detection uses the
   `PARTY_KILL` event (`attackerGUID, targetGUID`), where the attacker is the player or
   their pet and the victim's GUID starts with `Player-`.
+- **Pet kills:** the game may not send `PARTY_KILL` when a pet lands the killing blow.
+  So the pet's enemy-player target is noted (`UNIT_TARGET` for `pet`, plus a 1 sec
+  ticker). When that player dies (`UNIT_DIED`) within 4 sec of being the pet's target,
+  and no `PARTY_KILL` (any attacker) or guildie's `KILL;` message names him within
+  3 sec, it's announced as my kill after 1.5 sec. Not in battlegrounds or arenas, where
+  `PARTY_KILL` is secret. `announcedAt` stops a late `PARTY_KILL` announcing it twice.
+  Same idea as `Spy/PetKills.lua`.
 - **What is sent:** the killer's client shows the line locally and sends
   `KILL;victim;level;classFile;zone;count;assists` on the `GnistDing` prefix to
   `GUILD`. Receivers ignore their own echo. Fields 6 and 7 were added later; older
@@ -129,6 +137,30 @@ for the middle of the screen.
   own kills to the guild.
 - **Compatibility:** older versions ignore `KILL;` messages, because they only match
   `^DING:`.
+
+## PvP leaderboard (`Leaderboard.lua`)
+
+Ranks guild members by world PvP killing blows today, this week (from Monday), this
+month and of all time. Kills in battlegrounds and arenas (`IsInInstance` type `pvp`,
+`arena`) don't count. `Kills.lua` calls `ns.LeaderboardKill()` after showing my kill.
+
+- **Titles** (the user wants these to feel like an honour): #1 today "Dagens
+  Gnistsprutter", week "Ugens Brandfakkel", month "Månedens Bålkonge", all time
+  "Gnistkejseren", #2/#3 all time "Gnistprinsen"/"Gnistridderen". Ties share a title.
+  `ns.LeaderTitle(name)` gives the best one; the kill line shows it as `[title]` after
+  the killer. When a live kill makes someone the sole #1, a line from `CROWN_MSGS` is
+  shown (and a banner for a new Gnistkejser).
+- **Data:** `GnistifyDB.pvpBoard[name] = { total, days = { [dayNumber] = n } }`, a copy
+  of everyone's record. Day number = local noon `time()` / 86400. Days older than 40
+  are pruned at login; `total` stays.
+- **Sync** on `GnistDing` to `GUILD`: `LB;name;total;start;c1,c2,...;live` (counts from
+  day `start` to the sender's today, empty = 0; `live` = 1 right after the kill) and
+  `LBREQ` (15 sec after login). `total` is the version: higher always wins, even for
+  my own record (restores it after a reinstall). On `LBREQ` everyone queues all
+  records; a queued record is dropped when someone else sends the same or newer one,
+  and hearing an older record queues ours as a correction. The queue sends one record
+  per 1.1 sec. My own record isn't sent if `killsSend` is off.
+- `/gnist top` (`tavle`, `pvp`) or the "Åbn PvP-tavle" button opens the window.
 
 ## Fishing (`Fishing.lua`)
 
@@ -213,6 +245,7 @@ window by itself in BGs, arenas and dungeons), `callerFollow` (follow a caller p
 | `/gnist guild` | Toggle the guild chat post when you ding |
 | `/gnist banner` | Toggle the banner in the middle of the screen |
 | `/gnist drab` | Toggle showing the guild's PvP kills in chat |
+| `/gnist top` | Open the world PvP leaderboard |
 | `/gnist fisk` | Show today's catch counts in the guild |
 | `/gnist emojis` | List the available emojis |
 | `/gnist leder [navn\|mig\|ingen]` | Make your target (or the named member, yourself, nobody) the caller; with no target, open the leader window |

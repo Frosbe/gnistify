@@ -13,6 +13,12 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   nr. 3)"* i chatten, og der spilles en lyd. Teksten skifter fra gang til gang. "Med"
   er gruppemedlemmer tæt på, og tallet er, hvor mange drab personen har fået i dag.
   Selvom I er flere i gruppen, kommer beskeden kun én gang.
+- **PvP-tavle:** `/gnist top` viser, hvem i guilden der har flest drab i world PvP i dag,
+  denne uge, denne måned og nogensinde (BG og arena tæller ikke). Nr. 1 får en
+  ærestitel: **Dagens Gnistsprutter**, **Ugens Brandfakkel**, **Månedens Bålkonge** og
+  **Gnistkejseren** (nr. 2 og 3 nogensinde er **Gnistprinsen** og **Gnistridderen**).
+  Titlen står ved navnet, når du dræber nogen, og alle får besked, når en titel skifter
+  hænder. Tavlen deles mellem alle med addonen, også med dem der var offline.
 - **Leder i BG:** vælg én i gruppen som leder (shot caller), og tryk én tast for at
   tage lederens mål. Vælg lederen i det lille **Leder**-vindue (knappen *Vælg*). Vinduet
   dukker selv op i BG og dungeons, og ellers åbner du det fra `/gnist` (*Åbn
@@ -44,6 +50,7 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
 | Kommando | Hvad den gør |
 |---|---|
 | `/gnist` | Åbner indstillinger, hvor du kan slå hver funktion til og fra |
+| `/gnist top` | Viser guildens PvP-tavle |
 | `/gnist fisk` | Viser dagens fangst i guilden |
 | `/gnist hjælp` | Viser alle kommandoer |
 | `/gnist leder` | Gør dit target til leder, eller åbner leder-vinduet |

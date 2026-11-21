@@ -45,6 +45,18 @@ local KILL_SOUND = "Interface\\AddOns\\Gnistify\\sound.mp3"
 
 local seen = {}   -- enemy player GUID -> { level, name, class } while we could see them
 
+-- Pet kills: the game may not send PARTY_KILL when a pet lands the killing
+-- blow (Spy ran into this too). So we note which enemy player the pet is
+-- attacking; when he dies (UNIT_DIED) and no PARTY_KILL or guildie's KILL
+-- message names him within a moment, the kill is ours.
+local PET_WINDOW = 4     -- seconds since the pet last had him targeted
+local KILL_WAIT = 1.5    -- wait this long for a PARTY_KILL / KILL message before calling it the pet's
+local KILL_MATCH = 3     -- a kill of him this close to the death settles it
+local petTargets = {}    -- victim GUID -> GetTime() the pet last had him targeted
+local killedAt = {}      -- victim GUID -> GetTime() of a PARTY_KILL naming him
+local announcedAt = {}   -- victim GUID -> GetTime() we announced a kill of him
+local killedNames = {}   -- victim name -> GetTime() of a guildie's KILL message
+
 -- Remember players while we can see them, because after the kill the
 -- nameplate/target may already be gone (and GetPlayerInfoByGUID may be hidden).
 local function Remember(unit)
@@ -96,6 +108,9 @@ end
 local function Show(killer, victim, level, classFile, zone, assists, count)
     if not GnistifyDB or not GnistifyDB.kills then return end
     local killerText = "|cffff6600" .. killer .. "|r"
+    -- Leaderboard title, e.g. "[Gnistkejseren]" (Leaderboard.lua)
+    local title = ns.LeaderTitle and ns.LeaderTitle(killer)
+    if title then killerText = killerText .. " |cffffcc00[" .. title .. "]|r" end
     local names = {}
     for n in (assists or ""):gmatch("[^,]+") do names[#names + 1] = n end
     if #names > 0 then
@@ -169,6 +184,10 @@ local function Assists()
 end
 
 local function OnKillingBlow(guid)
+    -- Never twice for one death (a late PARTY_KILL after the pet fallback)
+    local last = announcedAt[guid]
+    if last and GetTime() - last <= KILL_MATCH then return end
+    announcedAt[guid] = GetTime()
     LookAround(guid)
     local info = seen[guid] or {}
     local name, classFile = info.name, info.class
@@ -193,6 +212,8 @@ local function OnKillingBlow(guid)
 
     -- I see my own kill (and hear the sound) right away
     Show(me, victim, level, classFile, zone, assists, count)
+    -- World PvP leaderboard (skips battlegrounds and arenas itself)
+    if ns.LeaderboardKill then ns.LeaderboardKill() end
     if IsInGuild() and GnistifyDB.killsSend then
         -- ";" and "," never appear in names or zone names. Fields 6 and 7 are
         -- new; older versions only read the first five, so this stays compatible.
@@ -204,18 +225,66 @@ local function IsMine(guid)
     return guid == Readable(UnitGUID("player")) or guid == Readable(UnitGUID("pet"))
 end
 
+local function NotePetTarget()
+    local target = Readable(UnitGUID("pettarget"))
+    if type(target) == "string" and target:find("^Player%-") then
+        petTargets[target] = GetTime()
+        Remember("pettarget")
+    end
+end
+
+local function CleanUp()
+    local now = GetTime()
+    for guid, t in pairs(petTargets) do if now - t > 60 then petTargets[guid] = nil end end
+    for guid, t in pairs(killedAt) do if now - t > 60 then killedAt[guid] = nil end end
+    for guid, t in pairs(announcedAt) do if now - t > 60 then announcedAt[guid] = nil end end
+    for name, t in pairs(killedNames) do if now - t > 60 then killedNames[name] = nil end end
+end
+
+-- An enemy player died: was he my pet's target, with nobody named as killer?
+local function OnUnitDied(guid)
+    guid = Readable(guid)
+    local petSaw = guid and petTargets[guid]
+    if not petSaw or GetTime() - petSaw > PET_WINDOW then return end
+    -- In battlegrounds and arenas the game hides who killed whom, so we can't
+    -- tell the pet's kills from everybody else's there
+    local _, instanceType = IsInInstance()
+    instanceType = Readable(instanceType)
+    if instanceType == "pvp" or instanceType == "arena" then return end
+    local died = GetTime()
+    C_Timer.After(KILL_WAIT, function()
+        local k = killedAt[guid]
+        if k and math.abs(died - k) <= KILL_MATCH then return end   -- the game said who
+        local name = seen[guid] and seen[guid].name
+        local other = name and killedNames[ns.Short(name)]
+        if other and math.abs(died - other) <= KILL_MATCH then return end      -- a guildie got him
+        petTargets[guid] = nil
+        OnKillingBlow(guid)
+    end)
+end
+
 local f = CreateFrame("Frame")
 for _, event in ipairs({
     "PARTY_KILL", "CHAT_MSG_ADDON", "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT",
-    "NAME_PLATE_UNIT_ADDED", "UNIT_LEVEL", "PLAYER_ENTERING_WORLD",
+    "NAME_PLATE_UNIT_ADDED", "UNIT_LEVEL", "PLAYER_ENTERING_WORLD", "UNIT_DIED", "UNIT_PET",
 }) do
     pcall(f.RegisterEvent, f, event)   -- an unknown event must not break the rest
+end
+pcall(f.RegisterUnitEvent, f, "UNIT_TARGET", "pet")
+-- UNIT_TARGET only fires when the pet switches target, so also look every second
+if C_Timer and C_Timer.NewTicker then
+    C_Timer.NewTicker(1, function()
+        NotePetTarget()
+        CleanUp()
+    end)
 end
 
 f:SetScript("OnEvent", function(_, event, ...)
     if event == "PARTY_KILL" then
         local attacker, target = ...
         attacker, target = Readable(attacker), Readable(target)
+        -- Someone in the group got him: the pet fallback must not claim him
+        if type(target) == "string" then killedAt[target] = GetTime() end
         -- Only the one who got the killing blow (or whose pet did) announces
         if not attacker or not IsMine(attacker) then return end
         if type(target) ~= "string" or not target:find("^Player%-") then return end
@@ -229,6 +298,7 @@ f:SetScript("OnEvent", function(_, event, ...)
         if not killer or killer == ns.Me() then return end   -- already shown
         local _, victim, level, classFile, zone, count, assists = strsplit(";", msg)
         if victim then
+            killedNames[victim] = GetTime()
             Show(killer, victim, level or "?", classFile ~= "" and classFile or nil, zone or "?",
                 assists, count)
         end
@@ -239,7 +309,12 @@ f:SetScript("OnEvent", function(_, event, ...)
         Remember("mouseover")
     elseif event == "NAME_PLATE_UNIT_ADDED" or event == "UNIT_LEVEL" then
         Remember((...))
+    elseif event == "UNIT_DIED" then
+        OnUnitDied((...))
+    elseif event == "UNIT_TARGET" or event == "UNIT_PET" then
+        NotePetTarget()
     elseif event == "PLAYER_ENTERING_WORLD" then
         wipe(seen)
+        wipe(petTargets)
     end
 end)
