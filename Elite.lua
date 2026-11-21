@@ -1,11 +1,10 @@
 -- Gnistify elite dragon: the PvP-tavle's leaders get the original WoW elite
 -- dragon around their portrait, on the player frame (you), the party frames and
 -- the target frame. The best title decides:
---   rare-elite (winged)  : Gnistkejseren (all-time #1)
---   elite (gold)         : #1 this month
---   rare (silver)        : #1 today or this week
--- If the client has no rare-elite texture (Leatrix Plus ships its own copy,
--- so it may be missing on Forever), Gnistkejseren gets the gold one.
+--   elite (gold)               : Gnistkejseren (all-time #1)
+--   rare-elite (silver, wings) : #1 this month
+--   rare (silver)              : #1 today or this week
+-- If the client has no rare-elite texture, month #1 gets the gold one.
 -- Setting: eliteFrames.
 --
 -- The classic textures and placement are the same as Leatrix Plus' "player

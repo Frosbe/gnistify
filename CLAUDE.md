@@ -52,7 +52,7 @@ All text the players see is in **Danish**. Keep it that way.
 | `Kills.lua` | PvP killing-blow announcements (see below). Shares `ns.PREFIX`, `ns.Short` and `ns.Print` from `Gnistify.lua` through the addon namespace. |
 | `Leaderboard.lua` | World PvP leaderboard ("PvP-tavle") and its sync (see below). |
 | `Minimap.lua` | Minimap button (hand-made, no LibDBIcon): left click PvP-tavle, right click settings, drag to move (`GnistifyDB.minimapAngle`). Tooltip lists title holders (`ns.TitleHolders`). Setting `minimapIcon`. |
-| `Elite.lua` | The classic elite dragon around PvP leaders' portraits (player, party, target frames): rare-elite (winged) for Gnistkejseren, gold elite for #1 this month, silver rare for #1 today/week (`ns.EliteKind`). Falls back to gold if the client lacks the rare-elite texture. Texture coords and placement copied from Leatrix Plus' player chain. Setting `eliteFrames`. |
+| `Elite.lua` | The classic elite dragon around PvP leaders' portraits (player, party, target frames): gold elite for Gnistkejseren (the user wants the emperor to look strongest), silver winged rare-elite for #1 this month, silver rare for #1 today/week (`ns.EliteKind`). Rare-elite falls back to gold if the client lacks it. Texture coords and placement copied from Leatrix Plus' player chain. Setting `eliteFrames`. |
 | `Fishing.lua` | Fishing catches, fishing skill dings, fish today and the louder splash (see below). |
 | `Caller.lua` | Battleground shot caller ("leder") and the assist button (see below). |
 | `Bindings.xml` | Key binding "Mål lederens mål" (`CLICK GnistAssistButton:LeftButton`). Loaded by the client from the addon folder; **not** listed in the `.toc`. |

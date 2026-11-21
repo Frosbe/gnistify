@@ -129,9 +129,9 @@ function ns.LeaderTitle(name)
         or PeriodTitle(PERIODS[2], name) or PeriodTitle(PERIODS[1], name)
 end
 
--- Which elite dragon a name gets on unit frames (Elite.lua): "rareelite" for
--- Gnistkejseren, "elite" (gold) for #1 this month, "rare" (silver) for #1
--- today or this week.
+-- Which elite dragon a name gets on unit frames (Elite.lua): "elite" (gold)
+-- for Gnistkejseren, "rareelite" (silver with wings) for #1 this month, "rare"
+-- (silver) for #1 today or this week.
 function ns.EliteKind(name)
     if not name or not GnistifyDB or not GnistifyDB.pvpBoard then return nil end
     local function first(p)
@@ -142,8 +142,8 @@ function ns.EliteKind(name)
         end
         return false
     end
-    if first(PERIODS[4]) then return "rareelite" end
-    if first(PERIODS[3]) then return "elite" end
+    if first(PERIODS[4]) then return "elite" end
+    if first(PERIODS[3]) then return "rareelite" end
     if first(PERIODS[2]) or first(PERIODS[1]) then return "rare" end
     return nil
 end

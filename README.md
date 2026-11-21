@@ -19,8 +19,8 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   **Gnistkejseren** (nr. 2 og 3 nogensinde er **Gnistprinsen** og **Gnistridderen**).
   Titlen står ved navnet, når du dræber nogen, og alle får besked i chatten og en lyd,
   når en titel skifter hænder (lyden kan slås fra i `/gnist`). Lederne får den gamle
-  elite-drage om deres portræt: den sjældne elite-drage med vinger til Gnistkejseren,
-  guld til månedens nr. 1 og sølv til dagens og ugens nr. 1. Den ses på dit eget portræt, i gruppen og når du har dem i target. Tavlen deles mellem alle med addonen, også med dem der var offline. Du kan
+  elite-drage om deres portræt: guld til Gnistkejseren, sølv med vinger til månedens
+  nr. 1 og sølv til dagens og ugens nr. 1. Den ses på dit eget portræt, i gruppen og når du har dem i target. Tavlen deles mellem alle med addonen, også med dem der var offline. Du kan
   også klikke på gnisten ved minimappet (højreklik åbner indstillingerne), og holder du
   musen over den, kan du se, hvem der har titlerne lige nu.
 - **Leder i BG:** vælg én i gruppen som leder (shot caller), og tryk én tast for at
