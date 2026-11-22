@@ -28,6 +28,8 @@ local OPTIONS = {
     { key = "fishingBanner", label = "Stor tekst midt på skærmen ved fangst" },
     { key = "fishingSend",   label = "Del mine fangster med guilden" },
     { key = "fishingSplash", label = "Højere plask når jeg fisker" },
+    { header = "Streaks" },
+    { key = "streaks",       label = "Fejr dage i træk (streaks)" },
     { header = "Battleground (leder)" },
     { key = "callerFrame",  label = "Vis leder-vinduet i BG og dungeons" },
     { key = "callerFollow", label = "Følg leder valgt af andre" },
@@ -88,7 +90,7 @@ end
 
 -- Stand-alone window -----------------------------------------------------
 local win = CreateFrame("Frame", "GnistifyOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(300, 776)
+win:SetSize(300, 828)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)
