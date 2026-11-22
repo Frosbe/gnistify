@@ -39,6 +39,14 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   point, og 75/150/225/300 fejres som et ding. 25, 50, 100 ... fisk på en dag bliver
   også meldt ud, og `/gnist fisk` viser dagens bedste fiskere. Mens du fisker, skrues
   der op for lydeffekter og ned for musik, så du nemt hører plasket.
+- **Professioner:** addonen deler dine professioner og skill med guilden, så alle kan slå
+  op, hvem der kan hvad. `/gnist prof alchemy` viser fx *"Alchemy: Navn 225/300, Bo 150/150
+  (3 dage gammel)"*, bedste skill først. Navnene er de engelske (Alchemy, Blacksmithing,
+  Enchanting, Engineering, Herbalism, Leatherworking, Mining, Skinning, Tailoring, Cooking,
+  First Aid, Fishing), og du kan forkorte dem (`alch`, `bs`, `ench`, `eng`, `herb`, `lw`,
+  `skin`, `tailor`, `cook`, `fa`, `fish`). Også dem, der er offline, kan ses, med seneste
+  kendte skill. `/gnist prof` alene viser, hvor mange der har hver profession. Du kan slå
+  deling fra i `/gnist`.
 - **:gnist:** skriv `:gnist:` i chatten for at vise en lille gnist. Kun dem med addonen
   ser billedet.
 
@@ -57,6 +65,7 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
 | `/gnist top` | Viser guildens PvP-tavle |
 | `/gnist reset` | Foreslår at nulstille PvP-tavlen. Alle med Gnistify bliver spurgt, og ved 4 ja starter alle drab forfra |
 | `/gnist fisk` | Viser dagens fangst i guilden |
+| `/gnist prof Alchemy` | Viser, hvem i guilden der har professionen, og deres skill (`/gnist prof` alene viser antal pr. profession) |
 | `/gnist hjælp` | Viser alle kommandoer |
 | `/gnist leder` | Gør dit target til leder, eller åbner leder-vinduet |
 | `/gnist leder Navn` / `mig` / `ingen` | Vælger en leder ved navn, dig selv, eller ingen |

@@ -222,6 +222,7 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.fishingBanner == nil then db.fishingBanner = true end
         if db.fishingSend == nil then db.fishingSend = true end
         if db.fishingSplash == nil then db.fishingSplash = true end
+        if db.profShare == nil then db.profShare = true end
         if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
             C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
         elseif RegisterAddonMessagePrefix then
@@ -330,6 +331,8 @@ SlashCmdList.GNISTIFY = function(input)
         ns.ResetVoteYes()
     elseif cmd == "fisk" or cmd == "fishing" then
         ns.FishingCommand()
+    elseif cmd == "prof" or cmd == "professioner" or cmd == "professions" then
+        ns.ProfCommand(rest)
     elseif cmd == "leder" or cmd == "caller" then
         ns.CallerCommand(rest)
     elseif cmd == "makro" or cmd == "macro" then
@@ -349,6 +352,7 @@ SlashCmdList.GNISTIFY = function(input)
         Print("  /gnist reset  - foreslå at nulstille PvP-tavlen (kræver 4 ja)")
         Print("  /gnist ja     - stem ja til at nulstille PvP-tavlen")
         Print("  /gnist fisk   - vis dagens fangst i guilden")
+        Print("  /gnist prof   - vis hvem i guilden der har en profession (fx /gnist prof alch)")
         Print("  /gnist emojis - vis alle :emojis: du kan skrive i chatten")
         Print("  /gnist leder  - vælg dit mål som leder (eller åbn leder-vinduet)")
         Print("  /gnist leder <navn> / mig / ingen - vælg leder")
