@@ -39,6 +39,11 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   point, og 75/150/225/300 fejres som et ding. 25, 50, 100 ... fisk på en dag bliver
   også meldt ud, og `/gnist fisk` viser dagens bedste fiskere. Mens du fisker, skrues
   der op for lydeffekter og ned for musik, så du nemt hører plasket.
+- **Gnister i zonen:** når du kommer ind i en ny zone, skriver Gnistify én linje i chatten
+  med de guildmedlemmer, der er online i samme zone, fx *"3 gnister i Stranglethorn Vale:
+  Bo Hansen (34), Tim (31), Mink Jageren (36)"*. Virker for alle i guilden, også dem uden
+  addonen. Ingen besked i dungeons og battlegrounds, eller hvis du lige har været i zonen.
+  Kan slås fra i `/gnist`.
 - **:gnist:** skriv `:gnist:` i chatten for at vise en lille gnist. Kun dem med addonen
   ser billedet.
 
@@ -57,6 +62,9 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
 | `/gnist top` | Viser guildens PvP-tavle |
 | `/gnist reset` | Foreslår at nulstille PvP-tavlen. Alle med Gnistify bliver spurgt, og ved 4 ja starter alle drab forfra |
 | `/gnist fisk` | Viser dagens fangst i guilden |
+| `/gnist her` | Viser guildens gnister i din zone |
+| `/gnist her Zone` | Viser guildens gnister i en zone, der starter med det du skriver (fx `/gnist her stran`) |
+| `/gnist zoner` | Viser hvor mange gnister der er online i hver zone |
 | `/gnist hjælp` | Viser alle kommandoer |
 | `/gnist leder` | Gør dit target til leder, eller åbner leder-vinduet |
 | `/gnist leder Navn` / `mig` / `ingen` | Vælger en leder ved navn, dig selv, eller ingen |

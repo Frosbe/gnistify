@@ -149,6 +149,8 @@ local function RequestRoster()
     end
 end
 
+ns.RequestRoster = RequestRoster
+
 -- Central celebration; dedupes between addon messages and roster scans.
 local function Celebrate(name, level)
     name = Short(name)
@@ -222,6 +224,7 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.fishingBanner == nil then db.fishingBanner = true end
         if db.fishingSend == nil then db.fishingSend = true end
         if db.fishingSplash == nil then db.fishingSplash = true end
+        if db.zonePresence == nil then db.zonePresence = true end
         if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
             C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
         elseif RegisterAddonMessagePrefix then
@@ -253,6 +256,7 @@ f:SetScript("OnEvent", function(_, event, ...)
     elseif event == "GUILD_ROSTER_UPDATE" then
         local canRequest = Readable((...))
         ScanRoster()
+        if ns.ZoneRosterUpdate then ns.ZoneRosterUpdate() end
         if canRequest then RequestRoster() end   -- server says newer data exists
 
     elseif event == "CHAT_MSG_GUILD" then
@@ -334,6 +338,10 @@ SlashCmdList.GNISTIFY = function(input)
         ns.CallerCommand(rest)
     elseif cmd == "makro" or cmd == "macro" then
         ns.MakeCallerMacro()
+    elseif cmd == "her" or cmd == "zone" then
+        ns.ZoneCommand(rest)
+    elseif cmd == "zoner" or cmd == "zones" then
+        ns.ZonesCommand()
     elseif cmd == "emojis" or cmd == "emoji" then
         Gnistify_ListEmojis()
     elseif cmd == "" then
@@ -349,6 +357,9 @@ SlashCmdList.GNISTIFY = function(input)
         Print("  /gnist reset  - foreslå at nulstille PvP-tavlen (kræver 4 ja)")
         Print("  /gnist ja     - stem ja til at nulstille PvP-tavlen")
         Print("  /gnist fisk   - vis dagens fangst i guilden")
+        Print("  /gnist her    - vis guildens gnister i din zone")
+        Print("  /gnist her <zone> - vis gnister i en bestemt zone")
+        Print("  /gnist zoner  - vis hvor mange gnister der er online i hver zone")
         Print("  /gnist emojis - vis alle :emojis: du kan skrive i chatten")
         Print("  /gnist leder  - vælg dit mål som leder (eller åbn leder-vinduet)")
         Print("  /gnist leder <navn> / mig / ingen - vælg leder")
