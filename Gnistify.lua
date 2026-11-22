@@ -222,6 +222,10 @@ f:SetScript("OnEvent", function(_, event, ...)
         if db.fishingBanner == nil then db.fishingBanner = true end
         if db.fishingSend == nil then db.fishingSend = true end
         if db.fishingSplash == nil then db.fishingSplash = true end
+        if db.loot == nil then db.loot = true end
+        if db.lootSound == nil then db.lootSound = true end
+        if db.lootBanner == nil then db.lootBanner = true end
+        if db.lootSend == nil then db.lootSend = true end
         if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
             C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
         elseif RegisterAddonMessagePrefix then

@@ -39,6 +39,11 @@ En WoW-addon til guilden **Gnisterne** på WoW Forever. Længe leve gnisten!
   point, og 75/150/225/300 fejres som et ding. 25, 50, 100 ... fisk på en dag bliver
   også meldt ud, og `/gnist fisk` viser dagens bedste fiskere. Mens du fisker, skrues
   der op for lydeffekter og ned for musik, så du nemt hører plasket.
+- **Episk loot:** når en fra guilden looter noget episk (lilla) eller legendarisk
+  (orange), ser alle med addonen fx *"Gnisten lyser lilla! Navn har fået fingrene i
+  [Item]!"* i chatten, og der spilles en lyd. Teksten skifter fra gang til gang, og
+  legendariske ting får ekstra meget begejstring. Håndlavede ting og ting købt hos
+  en vendor tæller ikke. Alt kan slås til og fra i `/gnist`.
 - **:gnist:** skriv `:gnist:` i chatten for at vise en lille gnist. Kun dem med addonen
   ser billedet.
 

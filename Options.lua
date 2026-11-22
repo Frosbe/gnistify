@@ -28,6 +28,11 @@ local OPTIONS = {
     { key = "fishingBanner", label = "Stor tekst midt på skærmen ved fangst" },
     { key = "fishingSend",   label = "Del mine fangster med guilden" },
     { key = "fishingSplash", label = "Højere plask når jeg fisker" },
+    { header = "Episk loot" },
+    { key = "loot",       label = "Vis guildens episke loot i chatten" },
+    { key = "lootSound",  label = "Spil lyd ved episk loot" },
+    { key = "lootBanner", label = "Stor tekst midt på skærmen ved loot" },
+    { key = "lootSend",   label = "Del mit episke loot med guilden" },
     { header = "Battleground (leder)" },
     { key = "callerFrame",  label = "Vis leder-vinduet i BG og dungeons" },
     { key = "callerFollow", label = "Følg leder valgt af andre" },
@@ -88,7 +93,7 @@ end
 
 -- Stand-alone window -----------------------------------------------------
 local win = CreateFrame("Frame", "GnistifyOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-win:SetSize(300, 776)
+win:SetSize(300, 906)
 win:SetPoint("CENTER")
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)
